@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.db.database import get_user, update_user, get_bills, get_trial_alerts
+from backend.db.database import get_user, update_user, get_bills, get_trial_alerts, get_latest_telemetry
 from backend.db.seed_demo import seed_demo_data, calculate_next_due_date
 from backend.agent.tools import roll_date_one_month
 from backend.agent.scam_rules import evaluate_scam_message
@@ -12,6 +12,8 @@ from backend.agent.ontario_calc import calculate_ontario_paycheque_and_rent
 from backend.middleware.pii_scrubber import scrub_pii
 from backend.middleware.quota_guard import check_monthly_quota, check_casl_or_system_command
 from backend.scheduler.reminder_cron import run_daily_reminder_digest
+
+client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
@@ -227,3 +229,135 @@ def test_sms_digest_batches_multiple_bills_into_one_text():
     assert "Student Visa" in digest
     # Verify PAD warning is consolidated
     assert "PAD" in digest
+
+
+def test_a2ui_chat_emits_valid_v1_surface_envelopes():
+    """11. Verify chat response contains valid A2UI v1.0 envelopes (createSurface, updateComponents, updateDataModel)."""
+    seed_demo_data()
+    resp = client.post(
+        "/api/chat",
+        json={
+            "message": "Just started an Adobe free trial today for 14 days, remind me 2 days before it charges",
+            "user_id": 1,
+            "mode": "mock",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["a2ui_mime"] == "application/a2ui+json"
+    envelopes = data.get("a2ui_messages", [])
+    assert len(envelopes) >= 2
+
+    # Verify createSurface
+    create_env = next((e for e in envelopes if "createSurface" in e), None)
+    assert create_env is not None
+    assert create_env["version"] == "1.0"
+    assert create_env["createSurface"]["catalogId"] == "nyra.ffe.mobile.v1"
+    surface_id = create_env["createSurface"]["surfaceId"]
+
+    # Verify updateComponents starts at id: "root"
+    update_env = next((e for e in envelopes if "updateComponents" in e), None)
+    assert update_env is not None
+    comps = update_env["updateComponents"]["components"]
+    assert any(c["id"] == "root" for c in comps)
+    assert update_env["updateComponents"]["surfaceId"] == surface_id
+
+    # Verify updateDataModel pointer
+    data_env = next((e for e in envelopes if "updateDataModel" in e), None)
+    assert data_env is not None
+    assert data_env["updateDataModel"]["path"] == "/"
+    assert data_env["updateDataModel"]["surfaceId"] == surface_id
+
+
+def test_a2ui_catalog_whitelist_rejects_unregistered_components():
+    """12. A2UI Catalog rejects unregistered or hostile component discriminators."""
+    from backend.a2ui.catalog import is_whitelisted, ALLOWED_COMPONENT_TYPES
+
+    assert is_whitelisted("Card") is True
+    assert is_whitelisted("ScamRiskBanner") is True
+    assert is_whitelisted("PaychequeGauge") is True
+    assert is_whitelisted("BillStatusRow") is True
+    assert is_whitelisted("ImpactStatStrip") is True
+
+    # Hostile / unregistered discriminators must be rejected
+    assert is_whitelisted("<script>") is False
+    assert is_whitelisted("IframeEmbed") is False
+    assert is_whitelisted("ArbitraryScript") is False
+    assert is_whitelisted("RawHtml") is False
+
+
+def test_a2ui_bidirectional_mark_paid_action_updates_db_at_zero_llm_cost():
+    """13. Bidirectional A2UI actions update DB deterministically at $0.00 LLM cost."""
+    seed_demo_data()
+    action_resp = client.post(
+        "/api/a2ui/action",
+        json={
+            "surfaceId": "surf_test_bill_1",
+            "actionName": "mark_bill_paid",
+            "context": {"billName": "Student Visa", "amount": 240.0},
+            "dataModel": {"bill": {"status": "scheduled", "name": "Student Visa"}},
+            "user_id": 1,
+        },
+    )
+    assert action_resp.status_code == 200
+    data = action_resp.json()
+    assert data["status"] == "success"
+    assert data["a2ui_mime"] == "application/a2ui+json"
+
+    # Verify in-place updateDataModel response
+    a2ui_messages = data["a2ui_messages"]
+    assert len(a2ui_messages) == 1
+    assert "updateDataModel" in a2ui_messages[0]
+    updated_val = a2ui_messages[0]["updateDataModel"]["value"]
+    assert updated_val["bill"]["status"] == "paid"
+
+    # Verify DB bill state rolled or marked paid
+    bills = get_bills(1)
+    visa_bill = next((b for b in bills if "Student Visa" in b["name"]), None)
+    assert visa_bill is not None
+    assert visa_bill["next_due_date"] == "2026-12-28"
+
+    # Verify user streak incremented
+    user = get_user(1)
+    assert user["streak_months"] == 5
+
+    # Verify telemetry logged at zero cost
+    telemetry = get_latest_telemetry(1)
+    assert telemetry["skill_used"] == "a2ui_direct_action"
+    assert telemetry["est_cost_usd"] == 0.0
+    assert telemetry["est_cost_cad"] == 0.0
+
+
+def test_a2ui_pii_block_emits_security_surface_without_llm_call():
+    """14. PII detection emits zero-token A2UI security confirmation surface without LLM call."""
+    seed_demo_data()
+    resp = client.post(
+        "/api/chat",
+        json={
+            "message": "Here is my SIN 123-456-789 for tax check",
+            "user_id": 1,
+            "mode": "mock",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["pii_redacted"] is True
+    assert data["cost"]["usd"] == 0.0
+    assert data["tokens"]["total"] == 0
+
+    # Verify security surface was generated
+    envelopes = data.get("a2ui_messages", [])
+    assert len(envelopes) >= 2
+    create_env = next((e for e in envelopes if "createSurface" in e), None)
+    assert create_env is not None
+    assert "pii_" in create_env["createSurface"]["surfaceId"]
+
+    # Verify component tree has security confirmation badge
+    update_env = next((e for e in envelopes if "updateComponents" in e), None)
+    comps = update_env["updateComponents"]["components"]
+    card = next((c for c in comps if c["component"] == "Card"), None)
+    assert card is not None
+    assert (
+        card.get("statusBorder") == "success"
+        or card.get("props", {}).get("variant") == "success"
+    )

@@ -8,6 +8,7 @@ import {
   Terminal,
   Clock,
   CheckCircle2,
+  Zap,
 } from "lucide-react";
 
 interface ScamLog {
@@ -45,16 +46,16 @@ export default function GuardrailLogCard({
   const latestTurn = telemetryLogs.length > 0 ? telemetryLogs[0] : null;
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+    <div className="bg-[#121620]/90 border border-[#383E4E] rounded-2xl p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="flex items-center justify-between border-b border-[#383E4E]/60 pb-3">
         <div className="flex items-center gap-2">
-          <Terminal className="w-5 h-5 text-emerald-400" />
-          <h2 className="font-bold text-sm tracking-wide text-slate-100 uppercase">
-            Guardrail Middleware &amp; Tool Traces
+          <Terminal className="w-4 h-4 text-[#3A8EE0]" />
+          <h2 className="font-mono font-bold text-xs tracking-wider text-white uppercase">
+            GUARDRAIL MIDDLEWARE & TOOL TRACES
           </h2>
         </div>
-        <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+        <span className="text-[10px] font-mono text-[#B6BAC5] bg-[#0B0E14] px-2 py-0.5 rounded border border-[#383E4E]">
           Deterministic Pre-LLM Filters
         </span>
       </div>
@@ -62,98 +63,100 @@ export default function GuardrailLogCard({
       {/* Real-Time Middleware Alerts */}
       <div className="space-y-2">
         {/* PII Scrubbed Alert */}
-        {(latestPiiRedacted || (latestTurn && latestTurn.pii_redacted === 1)) ? (
-          <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/50 flex items-center justify-between animate-pulse">
+        {latestPiiRedacted || (latestTurn && latestTurn.pii_redacted === 1) ? (
+          <div className="p-3 rounded-xl bg-[#34C759]/10 border border-[#34C759]/50 flex items-center justify-between animate-pulse">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-[#34C759]/20 text-[#34C759] flex items-center justify-center shrink-0">
                 <Lock className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-emerald-300 block">
+                <span className="text-xs font-bold text-[#34C759] font-mono block">
                   PII SCRUBBED BEFORE API CALL (0 TOKENS)
                 </span>
-                <span className="text-[11px] text-emerald-400/90">
-                  SIN / Card scrubbed at edge. No data sent to Anthropic Claude.
+                <span className="text-[11px] text-[#34C759]/80 font-sans">
+                  SIN / Card scrubbed at edge. No data sent to Claude.
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-mono text-emerald-300 bg-emerald-900/60 px-2 py-0.5 rounded">
+            <span className="text-[10px] font-mono text-[#34C759] bg-[#34C759]/20 px-2 py-0.5 rounded border border-[#34C759]/40">
               GUARD PASS
             </span>
           </div>
         ) : (
-          <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <div className="p-2.5 rounded-xl bg-[#0B0E14] border border-[#383E4E]/60 flex items-center justify-between text-xs text-[#B6BAC5]">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>PII Invariant: Zero bank tokens or SINs ever stored</span>
+              <ShieldCheck className="w-4 h-4 text-[#34C759]" />
+              <span className="font-mono text-[11px]">PII Invariant: Zero bank tokens or SINs stored</span>
             </div>
-            <span className="text-[10px] text-emerald-400/80 font-mono">ACTIVE</span>
+            <span className="text-[10px] text-[#34C759] font-mono">ACTIVE</span>
           </div>
         )}
 
         {/* MITRE F3 Scam Alert */}
-        {latestScam && latestScam.risk_level === "HIGH" && (
-          <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/50 flex items-center justify-between">
+        {latestScam && (latestScam.risk_level === "HIGH" || latestScam.risk_level === "CRITICAL_FRAUD") && (
+          <div className="p-3 rounded-xl bg-[#D04040]/10 border border-[#D04040]/50 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-300 flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-[#D04040]/20 text-[#D04040] flex items-center justify-center shrink-0">
                 <ShieldAlert className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-rose-300 block">
-                  MITRE F3 SCAM FLAG: HIGH RISK
+                <span className="text-xs font-bold text-[#EF4444] font-mono block">
+                  MITRE F3 SCAM DETECTED: {latestScam.scam_type}
                 </span>
-                <span className="text-[11px] text-rose-300/80">
-                  Tactic: {latestScam.mitre_f3_tactic} • Impersonation Phishing
+                <span className="text-[11px] text-[#EF4444]/90 font-mono">
+                  Tactic: {latestScam.mitre_f3_tactic} · Anti-Fraud Alert Dispatched
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-mono text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded font-bold">
-              FA0002
+            <span className="text-[10px] font-mono text-[#EF4444] bg-[#D04040]/20 px-2 py-0.5 rounded border border-[#D04040]/40">
+              BLOCKED
             </span>
+          </div>
+        )}
+
+        {/* A2UI Direct Action Badge if last turn was direct */}
+        {latestTurn && latestTurn.skill_used === "a2ui_direct_action" && (
+          <div className="p-2.5 rounded-xl bg-[#2177D1]/10 border border-[#2177D1]/50 flex items-center justify-between text-xs text-[#3A8EE0]">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#3A8EE0]" />
+              <span className="font-mono text-[11px]">A2UI Direct Action: DB updated deterministically at $0.00</span>
+            </div>
+            <span className="text-[10px] text-[#3A8EE0] font-mono font-bold">$0.00 COST</span>
           </div>
         )}
       </div>
 
-      {/* Real-Time Tool-Call Audit Stream */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block">
-          Recent Tool Calls &amp; Latency Trace
+      {/* Recent Tool Call Traces Terminal */}
+      <div className="space-y-1.5">
+        <span className="text-[11px] font-mono text-[#B6BAC5] block font-semibold">
+          RECENT TOOL CALL TRACES (LAST 4 TURNS)
         </span>
-
-        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-          {telemetryLogs.length === 0 ? (
-            <p className="text-xs text-slate-500 py-3 text-center">
-              No recent tool executions logged yet.
-            </p>
-          ) : (
-            telemetryLogs.map((log, idx) => (
-              <div
-                key={idx}
-                className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs font-mono space-y-1.5"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    {log.skill_used}
-                  </span>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                    <Clock className="w-3 h-3 text-slate-500" />
-                    <span>{log.latency_ms} ms</span>
-                  </div>
+        <div className="bg-[#0B0E14] border border-[#383E4E]/60 rounded-xl p-3 font-mono text-xs space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+          {telemetryLogs.slice(0, 4).map((log, idx) => (
+            <div
+              key={idx}
+              className="flex items-start justify-between pb-1.5 border-b border-[#383E4E]/30 last:border-0 last:pb-0"
+            >
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-slate-500">[{idx + 1}]</span>
+                  <span className="text-[#3A8EE0] font-semibold">{log.skill_used}</span>
+                  <span className="text-slate-600">via</span>
+                  <span className="text-slate-400">{log.model_used}</span>
                 </div>
-
-                {log.tool_calls && log.tool_calls.length > 0 && (
-                  <div className="pt-1 border-t border-slate-900 text-[11px] text-slate-300">
-                    {log.tool_calls.map((tc, tcIdx) => (
-                      <div key={tcIdx} className="truncate">
-                        <span className="text-purple-400 font-bold">tool:</span>{" "}
-                        <span className="text-slate-100">{tc.name}()</span>
-                      </div>
-                    ))}
+                {Array.isArray(log.tool_calls) && log.tool_calls.length > 0 && (
+                  <div className="text-[10px] text-slate-500 pl-4">
+                    tool: {log.tool_calls.map((t) => t.name).join(", ")}
                   </div>
                 )}
               </div>
-            ))
+              <span className="text-[10px] text-slate-400 shrink-0">{log.latency_ms}ms</span>
+            </div>
+          ))}
+          {telemetryLogs.length === 0 && (
+            <div className="text-slate-600 text-center py-2">
+              No recent tool call traces recorded yet.
+            </div>
           )}
         </div>
       </div>

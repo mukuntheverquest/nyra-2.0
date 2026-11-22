@@ -11,6 +11,13 @@ from backend.agent.tools import (
     execute_ontario_paycheque,
     execute_search_curriculum,
 )
+from backend.a2ui.compiler import (
+    compile_bill_or_trial_surface,
+    compile_scam_shield_surface,
+    compile_paycheque_surface,
+    compile_coach_surface,
+    compile_text_surface,
+)
 from backend.config import HAIKU_PRICING_PER_MTOK, USD_TO_CAD
 
 
@@ -26,6 +33,7 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
     tool_calls: List[Dict[str, Any]] = []
     assistant_reply = ""
     skill_used = "money_coach"
+    a2ui_messages: List[Dict[str, Any]] = []
 
     # 1. Non-Advisory Stock/Crypto Refusal check
     investment_keywords = ["should i buy", "stock to buy", "invest in crypto", "bitcoin", "penny stock", "which stock"]
@@ -37,6 +45,7 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
             "or understanding how a Tax-Free Savings Account (TFSA) shelters broad index funds from taxes.\n\n"
             "Educational info only — not licensed financial, tax, or legal advice."
         )
+        a2ui_messages = compile_text_surface(user_id, assistant_reply)
 
     # 2. Preset 1 / Trial Kill-switch
     elif "trial" in text_lower:
@@ -64,6 +73,7 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
             f"Charges begin on {tool_result['cancel_by_date']}. "
             f"I'll text you on {tool_result['alert_date']} ({alert_hours}h early) so you can cancel before paying a dime."
         )
+        a2ui_messages = compile_bill_or_trial_surface(user_id, "add_trial_killswitch", tool_result)
 
     # 3. Preset 2 / Canadian Scam Shield
     elif any(kw in text_lower for kw in ["osap", "cra", "interac", "refund", "bit.ly", "scam", "suspicious", "etransfer"]):
@@ -80,6 +90,7 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
             f"**Red Flags:**\n{flags_formatted}\n\n"
             f"**Exact Next Step:** {tool_result['suggested_next_step']}"
         )
+        a2ui_messages = compile_scam_shield_surface(user_id, tool_result)
 
     # 4. Preset 3 / Ontario Paycheque & Rent Check
     elif any(kw in text_lower for kw in ["/hr", "wage", "rent", "paycheque", "afford"]):
@@ -112,6 +123,7 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
             f"{rent_text}\n\n"
             f"Educational info only — not licensed financial, tax, or legal advice."
         )
+        a2ui_messages = compile_paycheque_surface(user_id, tool_result)
 
     # 5. Preset 5 / Mark Bill Paid
     elif "paid" in text_lower:
@@ -127,6 +139,7 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
             "output": tool_result,
         })
         assistant_reply = tool_result["message"]
+        a2ui_messages = compile_bill_or_trial_surface(user_id, "mark_bill_paid", tool_result)
 
     # 6. Add Bill
     elif "add" in text_lower and any(kw in text_lower for kw in ["bill", "rent", "hydro", "phone", "wifi", "$"]):
@@ -137,7 +150,6 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
         due_day = int(due_match.group(1)) if due_match else 15
         is_pad = "pad" in text_lower or "auto" in text_lower
 
-        # Extract title
         name = "New Bill"
         for candidate in ["Hydro", "Internet", "Enbridge", "Fido", "Gym", "Insurance", "Spotify"]:
             if candidate.lower() in text_lower:
@@ -151,6 +163,7 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
             "output": tool_result,
         })
         assistant_reply = tool_result["message"]
+        a2ui_messages = compile_bill_or_trial_surface(user_id, "add_bill", tool_result)
 
     # 7. List bills
     elif any(kw in text_lower for kw in ["list", "upcoming", "show bills", "what bills"]):
@@ -164,6 +177,7 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
         b_list = tool_result["upcoming_bills"]
         b_lines = "\n".join(f"• {b['name']}: ${b['amount']:.2f} due {b['next_due_date']}" for b in b_list)
         assistant_reply = f"Here are your upcoming bills (next 14 days):\n{b_lines or 'No bills due in next 14 days!'}"
+        a2ui_messages = compile_bill_or_trial_surface(user_id, "list_upcoming_bills", tool_result)
 
     # 8. Default Money Coach RAG lookup
     else:
@@ -182,12 +196,14 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
                 f"Source: FFE Curriculum ({chunks[0]['filename']})\n"
                 f"Educational info only — not licensed financial, tax, or legal advice."
             )
+            a2ui_messages = compile_coach_surface(user_id, text, rag_res)
         else:
             assistant_reply = (
                 "I'm here to help with Canadian budgeting, bills, scam prevention, and money basics. "
                 "Text me a bill to track, paste a suspicious link to scan, or ask about Ontario taxes and credit!\n\n"
                 "Educational info only — not licensed financial, tax, or legal advice."
             )
+            a2ui_messages = compile_text_surface(user_id, assistant_reply)
 
     latency_ms = int((time.time() - start_time) * 1000)
 
@@ -210,6 +226,8 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
         "skill_used": skill_used,
         "model_used": "claude-haiku-5-5 (offline-mock)",
         "tool_calls": tool_calls,
+        "a2ui_mime": "application/a2ui+json",
+        "a2ui_messages": a2ui_messages,
         "tokens": {
             "input": input_tokens,
             "cache_write": cache_write_tokens,

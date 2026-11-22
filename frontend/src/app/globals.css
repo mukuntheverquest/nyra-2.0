@@ -3,29 +3,58 @@
 @tailwind utilities;
 
 :root {
-  --background: #090d16;
-  --foreground: #ededed;
+  /* Igloo-Lite Atmospheric Matte Slate Canvas */
+  --bg-void: #0B0E14;
+  --bg-surface: #121620;
+  --bg-glass: rgba(18, 22, 32, 0.74);
+  --border-slate: #383E4E;
+  --border-subtle: rgba(182, 186, 197, 0.14);
+  --text-primary: #F1F5F9;
+  --text-silver: #B6BAC5;
+  --text-muted: #64748B;
+
+  /* Nyra Brand Accent (Extracted from nyra-app.ca) */
+  --nyra-accent: #2177D1;
+  --nyra-accent-dark: #1658A8;
+  --nyra-accent-bright: #3A8EE0;
+  --nyra-accent-cyan: #5BA3EC;
+  --nyra-accent-glow: rgba(33, 119, 209, 0.22);
+
+  /* Semantic Status & Guardrail Tokens */
+  --status-amber: #C39A35;
+  --status-amber-light: #D4AE52;
+  --status-red: #D04040;
+  --status-green: #34C759;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-primary);
+  background: var(--bg-void);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+  selection-background-color: var(--nyra-accent-glow);
 }
 
-/* Custom scrollbars */
+/* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #111827;
+  background: #0B0E14;
 }
 ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: #383E4E;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: #2177D1;
+}
+
+/* Atmospheric Subtle Grid Pattern */
+.bg-grid-slate {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(56, 62, 78, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 62, 78, 0.15) 1px, transparent 1px);
 }

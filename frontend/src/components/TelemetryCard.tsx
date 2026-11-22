@@ -36,131 +36,106 @@ export default function TelemetryCard({
   const latency = telemetry?.latency_ms ?? 140;
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+    <div className="bg-[#121620]/90 border border-[#383E4E] rounded-2xl p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="flex items-center justify-between border-b border-[#383E4E]/60 pb-3">
         <div className="flex items-center gap-2">
-          <Activity className="w-5 h-5 text-emerald-400" />
-          <h2 className="font-bold text-sm tracking-wide text-slate-100 uppercase">
-            Haiku 5.5 Telemetry & Unit Economics
+          <Activity className="w-4 h-4 text-[#3A8EE0]" />
+          <h2 className="font-mono font-bold text-xs tracking-wider text-white uppercase">
+            HAIKU 5.5 TELEMETRY & UNIT ECONOMICS
           </h2>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
-          <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="font-mono text-[11px]">{modelName}</span>
-          <span className="text-slate-500">•</span>
-          <span className="font-mono text-[11px] text-emerald-400">{latency}ms</span>
+        <div className="flex items-center gap-1.5 text-xs text-slate-300 bg-[#0B0E14] px-2.5 py-1 rounded-lg border border-[#383E4E]">
+          <Cpu className="w-3.5 h-3.5 text-[#3A8EE0]" />
+          <span className="font-mono text-[11px] text-slate-200">{modelName}</span>
+          <span className="text-slate-600">•</span>
+          <span className="font-mono text-[11px] text-[#34C759]">{latency}ms</span>
         </div>
       </div>
 
       {/* Token Breakdown Grid */}
       <div className="grid grid-cols-4 gap-2 text-center">
-        <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5">
-          <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+        <div className="bg-[#0B0E14] border border-[#383E4E]/60 rounded-xl p-2.5">
+          <span className="text-[10px] uppercase font-mono text-[#B6BAC5] block">
             Input Tokens
           </span>
-          <span className="text-lg font-bold text-slate-200 font-mono">
+          <span className="text-base font-bold text-slate-100 font-mono">
             {inputTokens}
           </span>
-          <span className="text-[9px] text-slate-500 block">$0.10 / 1M</span>
+          <span className="text-[9px] text-slate-500 font-mono block">$0.10 / 1M</span>
         </div>
 
-        <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5">
-          <span className="text-[10px] uppercase font-semibold text-emerald-400 block flex items-center justify-center gap-1">
+        <div className="bg-[#0B0E14] border border-[#383E4E]/60 rounded-xl p-2.5">
+          <span className="text-[10px] uppercase font-mono text-[#34C759] block flex items-center justify-center gap-1">
             <Zap className="w-2.5 h-2.5" /> Cache Read
           </span>
-          <span className="text-lg font-bold text-emerald-300 font-mono">
+          <span className="text-base font-bold text-[#34C759] font-mono">
             {cacheReadTokens}
           </span>
-          <span className="text-[9px] text-emerald-500 block">90% Discount</span>
+          <span className="text-[9px] text-[#34C759]/80 font-mono block">90% Discount</span>
         </div>
 
-        <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5">
-          <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+        <div className="bg-[#0B0E14] border border-[#383E4E]/60 rounded-xl p-2.5">
+          <span className="text-[10px] uppercase font-mono text-[#B6BAC5] block">
             Output Tokens
           </span>
-          <span className="text-lg font-bold text-slate-200 font-mono">
+          <span className="text-base font-bold text-slate-100 font-mono">
             {outputTokens}
           </span>
-          <span className="text-[9px] text-slate-500 block">Max 300 SMS</span>
+          <span className="text-[9px] text-slate-500 font-mono block">Max 300 SMS</span>
         </div>
 
-        <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 bg-gradient-to-br from-emerald-950/20 to-slate-950">
-          <span className="text-[10px] uppercase font-semibold text-emerald-400 block">
+        <div className="bg-[#0B0E14] border border-[#383E4E]/60 rounded-xl p-2.5 bg-gradient-to-br from-[#2177D1]/10 to-[#0B0E14]">
+          <span className="text-[10px] uppercase font-mono text-[#3A8EE0] block">
             Reply Cost
           </span>
-          <span className="text-sm font-black text-emerald-300 font-mono block mt-1">
-            ${costCad < 0.0001 ? "< $0.0001" : costCad.toFixed(5)} CAD
+          <span className="text-xs font-bold text-[#3A8EE0] font-mono block mt-1">
+            {costCad < 0.0001 ? "< $0.0001" : `$${costCad.toFixed(5)}`} CAD
           </span>
-          <span className="text-[9px] text-slate-500 block">
+          <span className="text-[9px] text-slate-500 font-mono block">
             (${costUsd.toFixed(6)} USD)
           </span>
         </div>
       </div>
 
-      {/* Sustainable Economics Highlights */}
-      <div className="grid grid-cols-2 gap-3 pt-1">
-        <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-            <DollarSign className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider block">
-              Projected AI Spend
-            </span>
-            <span className="text-base font-extrabold text-slate-100 font-mono">
-              &lt; $0.02 CAD / mo
-            </span>
-            <p className="text-[10px] text-slate-400">
-              Guaranteed by 25 AI msg quota + caching
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider block">
-              Estimated Gross Margin
-            </span>
-            <span className="text-base font-extrabold text-emerald-300 font-mono">
-              ~84% Gross Margin
-            </span>
-            <p className="text-[10px] text-slate-400">
-              On $45/yr &amp; $10/seat institutional
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Monthly Quota Bar */}
-      <div className="space-y-1.5 pt-1">
-        <div className="flex justify-between items-center text-xs">
-          <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-            <Database className="w-3.5 h-3.5 text-emerald-400" />
-            Monthly AI Quota (Coach &amp; Scam Shield)
+      {/* Monthly Quota Cap & Economics Summary */}
+      <div className="bg-[#0B0E14] border border-[#383E4E]/60 rounded-xl p-3 space-y-2">
+        <div className="flex items-center justify-between text-xs font-mono">
+          <span className="text-[#B6BAC5]">
+            Monthly Free-Tier AI Quota ({aiMsgsUsed} / {maxQuota} messages)
           </span>
-          <span className="font-mono text-xs text-slate-300">
-            <span className="text-emerald-400 font-bold">{aiMsgsUsed}</span> / {maxQuota} msgs used
-          </span>
+          <span className="text-slate-300 font-semibold">{quotaPct}%</span>
         </div>
-        <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
+        <div className="w-full bg-[#121620] h-2 rounded-full overflow-hidden border border-[#383E4E]/60">
           <div
-            className={`h-full transition-all duration-500 rounded-full ${
-              quotaPct >= 90
-                ? "bg-rose-500"
-                : quotaPct >= 60
-                ? "bg-amber-400"
-                : "bg-gradient-to-r from-emerald-500 to-teal-400"
+            className={`h-full transition-all duration-300 rounded-full ${
+              quotaPct > 80 ? "bg-[#D04040]" : quotaPct > 50 ? "bg-[#C39A35]" : "bg-[#2177D1]"
             }`}
             style={{ width: `${quotaPct}%` }}
           />
         </div>
-        <p className="text-[10px] text-slate-400 italic">
-          Bill Guard reminders &amp; payments are 100% deterministic and do not count against this quota.
-        </p>
+        <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-1">
+          <span>*Bill Guard & PII Scrubber always active at $0.00 cost</span>
+          <span>Resets on 1st of month</span>
+        </div>
+      </div>
+
+      {/* Subscription Gross Margin Strip */}
+      <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+        <div className="bg-[#0B0E14] border border-[#383E4E]/60 rounded-xl p-2.5 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] text-slate-500 block">Est. LLM Cost / User / Mo</span>
+            <span className="font-bold text-[#34C759]">&lt; $0.02 CAD</span>
+          </div>
+          <TrendingUp className="w-4 h-4 text-[#34C759]" />
+        </div>
+        <div className="bg-[#0B0E14] border border-[#383E4E]/60 rounded-xl p-2.5 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] text-slate-500 block">Gross Margin on $45/yr</span>
+            <span className="font-bold text-[#3A8EE0]">~84% (post-Twilio)</span>
+          </div>
+          <DollarSign className="w-4 h-4 text-[#3A8EE0]" />
+        </div>
       </div>
     </div>
   );

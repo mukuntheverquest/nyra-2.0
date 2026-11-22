@@ -29,6 +29,13 @@ from backend.agent.tools import (
     execute_search_curriculum,
 )
 from backend.agent.mock_engine import run_mock_turn
+from backend.a2ui.compiler import (
+    compile_bill_or_trial_surface,
+    compile_scam_shield_surface,
+    compile_paycheque_surface,
+    compile_coach_surface,
+    compile_text_surface,
+)
 
 SYSTEM_PROMPT_PATH = Path(__file__).resolve().parent / "system_prompt.md"
 
@@ -211,6 +218,25 @@ def execute_agent_turn(
     if skill_used in ["scam_shield", "money_coach"]:
         increment_ai_quota(user_id, 1)
 
+    # Compile A2UI v1.0 surface messages
+    a2ui_messages = []
+    if tool_calls_record:
+        last_tool = tool_calls_record[-1]
+        t_name = last_tool["name"]
+        t_out = last_tool["output"]
+        if t_name in ["add_bill", "add_trial_killswitch", "mark_bill_paid", "list_upcoming_bills"]:
+            a2ui_messages = compile_bill_or_trial_surface(user_id, t_name, t_out)
+        elif t_name == "analyze_scam_message":
+            a2ui_messages = compile_scam_shield_surface(user_id, t_out)
+        elif t_name == "ontario_paycheque_and_rent_check":
+            a2ui_messages = compile_paycheque_surface(user_id, t_out)
+        elif t_name == "search_ffe_curriculum":
+            a2ui_messages = compile_coach_surface(user_id, user_message, t_out)
+        else:
+            a2ui_messages = compile_text_surface(user_id, final_reply)
+    else:
+        a2ui_messages = compile_text_surface(user_id, final_reply)
+
     # Log telemetry and messages
     add_telemetry(
         user_id=user_id,
@@ -234,6 +260,8 @@ def execute_agent_turn(
         "skill_used": skill_used,
         "model_used": MODEL_PRIMARY,
         "tool_calls": tool_calls_record,
+        "a2ui_mime": "application/a2ui+json",
+        "a2ui_messages": a2ui_messages,
         "tokens": {
             "input": total_input,
             "cache_write": total_cache_write,

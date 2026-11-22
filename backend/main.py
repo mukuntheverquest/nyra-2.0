@@ -27,12 +27,17 @@ from backend.middleware.quota_guard import (
     check_monthly_quota,
 )
 from backend.agent.router import execute_agent_turn
+from backend.agent.tools import execute_mark_bill_paid, execute_add_bill
 from backend.scheduler.reminder_cron import run_daily_reminder_digest
+from backend.a2ui.compiler import (
+    compile_pii_block_surface,
+    compile_text_surface,
+    compile_digest_surface,
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Auto-initialize and seed if not present
     init_db()
     user = get_user(1)
     if not user:
@@ -42,7 +47,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Nyra 2.0 Guardrailed Agent Harness",
-    description="Text-First Canadian Bill Guard, Scam Shield & FFE Money Coach",
+    description="Text-First Canadian Bill Guard, Scam Shield & FFE Money Coach (A2UI v1.0 Enabled)",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -63,6 +68,14 @@ class ChatRequest(BaseModel):
     mode: Optional[str] = "mock"  # "live" | "mock"
 
 
+class A2UIActionRequest(BaseModel):
+    surfaceId: str
+    actionName: str
+    context: Dict[str, Any] = {}
+    dataModel: Optional[Dict[str, Any]] = None
+    user_id: int = 1
+
+
 class SettingsRequest(BaseModel):
     user_id: int = 1
     plan_tier: Optional[str] = None
@@ -76,6 +89,7 @@ def read_root():
     return {
         "system": "Nyra 2.0 Guardrailed Agent Harness",
         "organization": "Financial Futures Education (FFE)",
+        "protocol": "A2UI v1.0",
         "status": "operational",
         "demo_user": "Alex Rivera",
     }
@@ -124,6 +138,9 @@ def process_chat(req: ChatRequest):
         reply = pii_res["warning_message"]
         latency_ms = int((time.time() - start_time) * 1000)
 
+        # Generate A2UI v1.0 security confirmation surface
+        a2ui_messages = compile_pii_block_surface(user_id, pii_res["redacted_types"])
+
         # Log zero-token, zero-cost PII block turn
         add_telemetry(
             user_id=user_id,
@@ -144,10 +161,13 @@ def process_chat(req: ChatRequest):
 
         return {
             "reply": reply,
+            "reply_text": reply,
             "skill_used": "pii_block",
             "pii_redacted": True,
             "redacted_types": pii_res["redacted_types"],
             "sanitized_text": sanitized_text,
+            "a2ui_mime": "application/a2ui+json",
+            "a2ui_messages": a2ui_messages,
             "tokens": {"input": 0, "cache_write": 0, "cache_read": 0, "output": 0, "total": 0},
             "cost": {"usd": 0.0, "cad": 0.0},
             "latency_ms": latency_ms,
@@ -159,6 +179,7 @@ def process_chat(req: ChatRequest):
     if casl_res:
         reply = casl_res["reply"]
         latency_ms = int((time.time() - start_time) * 1000)
+        a2ui_messages = compile_text_surface(user_id, reply)
 
         add_telemetry(
             user_id=user_id,
@@ -179,8 +200,11 @@ def process_chat(req: ChatRequest):
 
         return {
             "reply": reply,
+            "reply_text": reply,
             "skill_used": "casl_zero_token",
             "pii_redacted": False,
+            "a2ui_mime": "application/a2ui+json",
+            "a2ui_messages": a2ui_messages,
             "tokens": {"input": 0, "cache_write": 0, "cache_read": 0, "output": 0, "total": 0},
             "cost": {"usd": 0.0, "cad": 0.0},
             "latency_ms": latency_ms,
@@ -192,6 +216,7 @@ def process_chat(req: ChatRequest):
     if not quota_res["allowed"]:
         reply = quota_res["reply"]
         latency_ms = int((time.time() - start_time) * 1000)
+        a2ui_messages = compile_text_surface(user_id, reply)
 
         add_telemetry(
             user_id=user_id,
@@ -212,8 +237,11 @@ def process_chat(req: ChatRequest):
 
         return {
             "reply": reply,
+            "reply_text": reply,
             "skill_used": "quota_exceeded",
             "pii_redacted": False,
+            "a2ui_mime": "application/a2ui+json",
+            "a2ui_messages": a2ui_messages,
             "tokens": {"input": 0, "cache_write": 0, "cache_read": 0, "output": 0, "total": 0},
             "cost": {"usd": 0.0, "cad": 0.0},
             "latency_ms": latency_ms,
@@ -222,8 +250,118 @@ def process_chat(req: ChatRequest):
 
     # 4. Agent Router (Live Claude Haiku 5.5 or Deterministic Mock)
     agent_res = execute_agent_turn(user_id=user_id, user_message=raw_text, force_mode=mode)
+    agent_res["reply_text"] = agent_res.get("reply", "")
+    agent_res["a2ui_mime"] = "application/a2ui+json"
     agent_res["state"] = get_full_state(user_id)
     return agent_res
+
+
+@app.post("/api/a2ui/action")
+def process_a2ui_action(req: A2UIActionRequest):
+    """
+    Bidirectional A2UI user action handler.
+    Executes Python tool handlers directly ($0.00 LLM cost) and mutates surface data models.
+    """
+    start_time = time.time()
+    user_id = req.user_id
+    action = req.actionName
+    ctx = req.context or {}
+    dm = req.dataModel or {}
+
+    updated_data_model = dict(dm)
+    action_note = ""
+
+    if action == "mark_bill_paid":
+        b_name = ctx.get("bill_name") or ctx.get("billName") or ctx.get("name") or "Rogers Phone"
+        tool_res = execute_mark_bill_paid(user_id, b_name)
+        updated_data_model["paid"] = True
+        updated_data_model["status"] = "paid"
+        if "bill" in updated_data_model and isinstance(updated_data_model["bill"], dict):
+            updated_data_model["bill"]["status"] = "paid"
+        updated_data_model["streak"] = tool_res.get("streak_months")
+        updated_data_model["message"] = tool_res.get("message")
+        action_note = f"Marked '{b_name}' as paid ($0.00 LLM cost)"
+
+    elif action == "cancel_trial_alert":
+        trial_id = ctx.get("trial_id")
+        service_name = ctx.get("service_name", "Trial")
+        from backend.db.database import get_db_connection
+        if trial_id:
+            conn = get_db_connection()
+            with conn:
+                conn.execute("UPDATE trial_alerts SET status = 'cancelled' WHERE id = ?", (trial_id,))
+            conn.close()
+        updated_data_model["status"] = "cancelled"
+        updated_data_model["cancelled"] = True
+        action_note = f"Cancelled alert for '{service_name}'"
+
+    elif action == "snooze_reminder":
+        bill_id = ctx.get("bill_id")
+        updated_data_model["snoozed"] = True
+        action_note = f"Snoozed bill #{bill_id} reminder"
+
+    elif action == "add_rent_as_bill":
+        amt = float(ctx.get("amount", 850.0))
+        due_day = int(ctx.get("due_day", 1))
+        execute_add_bill(user_id=user_id, name="Rent", amount=amt, due_day=due_day, category="rent")
+        updated_data_model["rentTracked"] = True
+        action_note = f"Added Rent (${amt:.2f}) into Bill Guard"
+
+    elif action == "confirm_scam_blocked":
+        updated_data_model["blocked"] = True
+        updated_data_model["statusText"] = "Blocked & Reported"
+        action_note = "User confirmed scam blocked"
+
+    elif action == "view_ca_antifraud_steps":
+        updated_data_model["antifraud_steps"] = (
+            "1. File report at antifraudcentre-centreantifraude.ca\n"
+            "2. Contact your bank fraud desk if credentials were shared.\n"
+            "3. Notify credit bureaus (Equifax / TransUnion)."
+        )
+        action_note = "Dispatched CAFC anti-fraud steps"
+
+    else:
+        updated_data_model["handled"] = True
+        action_note = f"Executed generic action: {action}"
+
+    latency_ms = int((time.time() - start_time) * 1000)
+
+    # Log $0.00 telemetry turn
+    add_telemetry(
+        user_id=user_id,
+        skill_used="a2ui_direct_action",
+        model_used="deterministic-action",
+        input_tokens=0,
+        cache_write_tokens=0,
+        cache_read_tokens=0,
+        output_tokens=0,
+        est_cost_usd=0.0,
+        est_cost_cad=0.0,
+        pii_redacted=0,
+        tool_calls=[{"name": action, "context": ctx, "note": action_note}],
+        latency_ms=latency_ms,
+    )
+
+    # Return updated A2UI envelope with in-place data model mutation
+    a2ui_messages = [
+        {
+            "version": "1.0",
+            "updateDataModel": {
+                "surfaceId": req.surfaceId,
+                "path": "/",
+                "value": updated_data_model,
+            },
+        }
+    ]
+
+    return {
+        "status": "success",
+        "actionName": action,
+        "surfaceId": req.surfaceId,
+        "a2ui_mime": "application/a2ui+json",
+        "a2ui_messages": a2ui_messages,
+        "state": get_full_state(user_id),
+    }
 
 
 @app.post("/api/settings")
@@ -234,7 +372,6 @@ def update_settings(req: SettingsRequest):
         updates["plan_tier"] = req.plan_tier
     if req.org_code is not None:
         updates["org_code"] = req.org_code.strip().upper()
-        # If valid institutional code, set plan to b2b_bulk
         if updates["org_code"] in ["MCMASTER-2026", "FFE-COHORT-04", "MCMASTER-BETA"]:
             updates["plan_tier"] = "b2b_bulk"
     if req.sms_active is not None:
@@ -255,24 +392,25 @@ def reset_demo():
 @app.post("/api/demo/trigger-cron")
 def trigger_cron_job(user_id: int = 1):
     result = run_daily_reminder_digest(user_id)
-    return {"status": "success", "cron_result": result, "state": get_full_state(user_id)}
+    a2ui_messages = compile_digest_surface(user_id, result)
+    return {
+        "status": "success",
+        "cron_result": result,
+        "a2ui_mime": "application/a2ui+json",
+        "a2ui_messages": a2ui_messages,
+        "state": get_full_state(user_id),
+    }
 
 
 @app.post("/webhook/twilio")
 async def twilio_webhook(request: Request):
-    """
-    Twilio SMS Webhook handler for production integration.
-    Accepts application/x-www-form-urlencoded data from Twilio.
-    """
     form_data = await request.form()
     incoming_msg = form_data.get("Body", "").strip()
-    from_phone = form_data.get("From", "")
 
     req = ChatRequest(message=incoming_msg, user_id=1, mode="live")
     result = process_chat(req)
     reply_text = result["reply"]
 
-    # Format TwiML XML response
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Message>{reply_text}</Message>
