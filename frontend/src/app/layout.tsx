@@ -21,8 +21,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nyra 2.0 — Guardrailed AI Agent Harness & A2UI v1.0",
-  description: "Text-First Canadian Bill Guard, Scam Shield & FFE Money Coach built on A2UI v1.0 declarative surfaces",
+  title: "Nyra 2.0 — Canadian Youth Financial Safety & A2UI v0.9 Harness",
+  description: "Text-First Canadian Bill Guard, Scam Shield & FFE Money Coach built on A2UI v0.9 declarative surfaces",
 };
 
 export default function RootLayout({
@@ -33,9 +33,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} dark`}
+      className={`sc-ready ${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="min-h-screen bg-[#0B0E14] text-[#F1F5F9] font-sans antialiased selection:bg-[#2177D1]/30 selection:text-[#5BA3EC]">
+      <body className="min-h-screen bg-white text-slate-900 font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
         {children}
       </body>
     </html>

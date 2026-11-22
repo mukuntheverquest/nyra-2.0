@@ -13,13 +13,13 @@ def compile_a2ui_envelopes(
     components: List[Dict[str, Any]],
     data_model: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
-    """Generates standard A2UI v1.0 message envelopes."""
+    """Generates standard A2UI v0.9 message envelopes."""
     if not validate_components_list(components):
         raise ValueError("Invalid component found in A2UI adjacency list.")
 
     return [
         {
-            "version": "1.0",
+            "version": "v0.9",
             "createSurface": {
                 "surfaceId": surface_id,
                 "catalogId": CATALOG_ID,
@@ -27,14 +27,14 @@ def compile_a2ui_envelopes(
             },
         },
         {
-            "version": "1.0",
+            "version": "v0.9",
             "updateComponents": {
                 "surfaceId": surface_id,
                 "components": components,
             },
         },
         {
-            "version": "1.0",
+            "version": "v0.9",
             "updateDataModel": {
                 "surfaceId": surface_id,
                 "path": "/",
@@ -61,69 +61,79 @@ def compile_bill_or_trial_surface(
             {
                 "id": "root",
                 "component": "Card",
-                "props": {"variant": "default"},
+                "child": "col_root",
+            },
+            {
+                "id": "col_root",
+                "component": "Column",
                 "children": ["header_row", "details_col", "divider", "actions_row"],
             },
             {
                 "id": "header_row",
                 "component": "Row",
-                "props": {"justify": "space-between", "align": "center"},
-                "children": ["title", "badge"],
+                "children": ["title", "status_tag"],
             },
             {
                 "id": "title",
                 "component": "Text",
-                "props": {"variant": "h3", "text": f"{service} Free Trial"},
+                "text": f"Trial Kill-Switch: {service}",
+                "variant": "h3",
             },
             {
-                "id": "badge",
-                "component": "Badge",
-                "props": {"variant": "amber", "text": "48h Warning Active"},
+                "id": "status_tag",
+                "component": "Text",
+                "text": "48h Warning Armed",
+                "variant": "caption",
             },
             {
                 "id": "details_col",
                 "component": "Column",
-                "props": {"gap": "sm"},
-                "children": ["cancel_text", "alert_text"],
+                "children": ["cancel_by_text", "alert_date_text"],
             },
             {
-                "id": "cancel_text",
+                "id": "cancel_by_text",
                 "component": "Text",
-                "props": {"variant": "body", "text": f"Charges begin: {cancel_date}"},
+                "text": f"Charges Begin: {cancel_date}",
+                "variant": "body",
             },
             {
-                "id": "alert_text",
+                "id": "alert_date_text",
                 "component": "Text",
-                "props": {"variant": "caption", "text": f"Nyra SMS reminder scheduled for {alert_date}"},
+                "text": f"Cancellation Reminder: {alert_date}",
+                "variant": "caption",
             },
             {
                 "id": "divider",
                 "component": "Divider",
-                "props": {},
             },
             {
                 "id": "actions_row",
                 "component": "Row",
-                "props": {"justify": "flex-end", "gap": "sm"},
                 "children": ["cancel_btn"],
             },
             {
                 "id": "cancel_btn",
                 "component": "Button",
-                "props": {
-                    "variant": "danger",
-                    "text": "Cancel Trial Early",
-                    "action": {
+                "child": "cancel_btn_txt",
+                "variant": "danger",
+                "action": {
+                    "event": {
                         "name": "cancel_trial_alert",
                         "context": {"trial_id": tool_result.get("trial_id"), "service_name": service},
-                    },
+                    }
                 },
+            },
+            {
+                "id": "cancel_btn_txt",
+                "component": "Text",
+                "text": "Cancel Trial Early",
             },
         ]
         data_model = {
             "trial": tool_result,
             "status": "active",
         }
+
     elif tool_name == "mark_bill_paid":
         b_name = tool_result.get("bill_name", "Bill")
         new_due = tool_result.get("new_due_date", "")
@@ -134,118 +144,137 @@ def compile_bill_or_trial_surface(
             {
                 "id": "root",
                 "component": "Card",
-                "props": {"variant": "success"},
-                "children": ["header_row", "streak_strip", "divider", "next_due_text"],
+                "child": "col_root",
+            },
+            {
+                "id": "col_root",
+                "component": "Column",
+                "children": ["header_row", "stats_row", "divider", "next_due_text"],
             },
             {
                 "id": "header_row",
                 "component": "Row",
-                "props": {"justify": "space-between", "align": "center"},
-                "children": ["title", "badge"],
+                "children": ["title", "badge_txt"],
             },
             {
                 "id": "title",
                 "component": "Text",
-                "props": {"variant": "h3", "text": f"{b_name} Paid!"},
+                "text": f"{b_name} Paid!",
+                "variant": "h3",
             },
             {
-                "id": "badge",
-                "component": "Badge",
-                "props": {"variant": "green", "text": "Streak Extended"},
+                "id": "badge_txt",
+                "component": "Text",
+                "text": "Streak Extended ✓",
+                "variant": "caption",
             },
             {
-                "id": "streak_strip",
-                "component": "ImpactStatStrip",
-                "props": {
-                    "streakMonths": streak,
-                    "lateFeesSaved": saved,
-                    "impactMinutesFunded": tool_result.get("impact_minutes_funded", 0),
-                },
+                "id": "stats_row",
+                "component": "Row",
+                "children": ["streak_txt", "savings_txt"],
+            },
+            {
+                "id": "streak_txt",
+                "component": "Text",
+                "text": f"Payment Streak: {streak} months",
+                "variant": "body",
+            },
+            {
+                "id": "savings_txt",
+                "component": "Text",
+                "text": f"Late Fees Avoided: ${saved:.2f} CAD",
+                "variant": "body",
             },
             {
                 "id": "divider",
                 "component": "Divider",
-                "props": {},
             },
             {
                 "id": "next_due_text",
                 "component": "Text",
-                "props": {"variant": "caption", "text": f"Next billing cycle rolled to {new_due}."},
+                "text": f"Next cycle rolled forward to {new_due}.",
+                "variant": "caption",
             },
         ]
-        data_model = {"bill": tool_result, "paid": True}
+        data_model = {
+            "bill_name": b_name,
+            "status": "paid",
+            "new_due_date": new_due,
+            "streak": streak,
+            "saved": saved,
+        }
+
     else:
-        # Default add_bill or list_upcoming_bills
+        # Default add_bill
         b_name = tool_result.get("name", "Bill")
-        amt = tool_result.get("amount", 0.0)
+        amount = tool_result.get("amount", 0.0)
         due_date = tool_result.get("next_due_date", "")
-        is_pad = bool(tool_result.get("is_pad", False))
+        is_pad = tool_result.get("is_pad", False)
 
         components = [
             {
                 "id": "root",
                 "component": "Card",
-                "props": {"variant": "default"},
-                "children": ["header_row", "status_row", "divider", "actions_row"],
+                "child": "col_root",
+            },
+            {
+                "id": "col_root",
+                "component": "Column",
+                "children": ["header_row", "due_text", "divider", "actions_row"],
             },
             {
                 "id": "header_row",
                 "component": "Row",
-                "props": {"justify": "space-between", "align": "center"},
-                "children": ["title", "badge"],
+                "children": ["title", "amt_txt"],
             },
             {
                 "id": "title",
                 "component": "Text",
-                "props": {"variant": "h3", "text": b_name},
+                "text": f"Tracked: {b_name}" + (" (PAD)" if is_pad else ""),
+                "variant": "h3",
             },
             {
-                "id": "badge",
-                "component": "Badge",
-                "props": {
-                    "variant": "amber" if is_pad else "blue",
-                    "text": "PAD Auto-Debit" if is_pad else "Scheduled",
-                },
+                "id": "amt_txt",
+                "component": "Text",
+                "text": f"${amount:.2f} CAD",
+                "variant": "body",
             },
             {
-                "id": "status_row",
-                "component": "BillStatusRow",
-                "props": {
-                    "billId": tool_result.get("bill_id", 0),
-                    "name": b_name,
-                    "amount": amt,
-                    "nextDueDate": due_date,
-                    "category": tool_result.get("category", "utility"),
-                    "isPad": 1 if is_pad else 0,
-                    "statementDay": tool_result.get("statement_day"),
-                    "status": "upcoming",
-                },
+                "id": "due_text",
+                "component": "Text",
+                "text": f"Due on {due_date}. Auto-rolls upon payment.",
+                "variant": "caption",
             },
             {
                 "id": "divider",
                 "component": "Divider",
-                "props": {},
             },
             {
                 "id": "actions_row",
                 "component": "Row",
-                "props": {"justify": "flex-end", "gap": "sm"},
-                "children": ["mark_paid_btn"],
+                "children": ["pay_btn"],
             },
             {
-                "id": "mark_paid_btn",
+                "id": "pay_btn",
                 "component": "Button",
-                "props": {
-                    "variant": "primary",
-                    "text": "Mark Paid",
-                    "action": {
+                "child": "pay_btn_txt",
+                "action": {
+                    "event": {
                         "name": "mark_bill_paid",
-                        "context": {"bill_name": b_name, "bill_id": tool_result.get("bill_id")},
-                    },
+                        "context": {"billName": b_name, "amount": amount},
+                    }
                 },
             },
+            {
+                "id": "pay_btn_txt",
+                "component": "Text",
+                "text": "Mark Paid",
+            },
         ]
-        data_model = {"bill": tool_result, "status": "upcoming"}
+        data_model = {
+            "bill": tool_result,
+            "status": "scheduled",
+        }
 
     return compile_a2ui_envelopes(sid, components, data_model)
 
@@ -257,19 +286,21 @@ def compile_scam_shield_surface(
 ) -> List[Dict[str, Any]]:
     sid = surface_id or generate_surface_id("scam")
     risk_level = tool_result.get("risk_level", "SUSPICIOUS")
-    scam_type = tool_result.get("scam_type", "phishing")
-    tactic = tool_result.get("mitre_f3_tactic", "Positioning (FA0001)")
+    scam_type = tool_result.get("scam_type", "Suspicious Activity")
+    tactic = tool_result.get("mitre_f3_tactic", "Urgency / Impersonation")
     red_flags = tool_result.get("red_flags", [])
-    next_step = tool_result.get("suggested_next_step", "Do not click links.")
+    next_step = tool_result.get("recommended_action", "Do not click links or reply with credentials.")
 
     rf_items = []
-    children_root = ["risk_banner", "red_flags_label"]
-    for i, rf in enumerate(red_flags):
-        rf_id = f"rf_{i}"
+    children_root = ["header_row", "scam_type_txt", "red_flags_label"]
+
+    for idx, rf in enumerate(red_flags):
+        rf_id = f"flag_{idx}"
         rf_items.append({
             "id": rf_id,
             "component": "Text",
-            "props": {"variant": "body", "text": f"• {rf}"},
+            "text": f"• {rf}",
+            "variant": "body",
         })
         children_root.append(rf_id)
 
@@ -279,77 +310,107 @@ def compile_scam_shield_surface(
         {
             "id": "root",
             "component": "Card",
-            "props": {"variant": "danger" if risk_level == "HIGH" else "warning"},
+            "child": "col_root",
+        },
+        {
+            "id": "col_root",
+            "component": "Column",
             "children": children_root,
         },
         {
-            "id": "risk_banner",
-            "component": "ScamRiskBanner",
-            "props": {
-                "riskLevel": risk_level,
-                "scamType": scam_type,
-                "mitreTactic": tactic,
-                "score": tool_result.get("score", 70),
-            },
+            "id": "header_row",
+            "component": "Row",
+            "children": ["risk_title", "tactic_badge"],
+        },
+        {
+            "id": "risk_title",
+            "component": "Text",
+            "text": f"Canadian Scam Shield // {risk_level}",
+            "variant": "h3",
+        },
+        {
+            "id": "tactic_badge",
+            "component": "Text",
+            "text": tactic,
+            "variant": "caption",
+        },
+        {
+            "id": "scam_type_txt",
+            "component": "Text",
+            "text": f"Identified Pattern: {scam_type}",
+            "variant": "body",
         },
         {
             "id": "red_flags_label",
             "component": "Text",
-            "props": {"variant": "caption", "text": "RED FLAGS DETECTED (MITRE F3):"},
+            "text": "RED FLAGS DETECTED (MITRE F3):",
+            "variant": "caption",
         },
         *rf_items,
         {
             "id": "divider",
             "component": "Divider",
-            "props": {},
         },
         {
             "id": "next_step_label",
             "component": "Text",
-            "props": {"variant": "caption", "text": "RECOMMENDED NEXT STEP:"},
+            "text": "RECOMMENDED NEXT STEP:",
+            "variant": "caption",
         },
         {
             "id": "next_step_text",
             "component": "Text",
-            "props": {"variant": "body", "text": next_step},
+            "text": next_step,
+            "variant": "body",
         },
         {
             "id": "actions_row",
             "component": "Row",
-            "props": {"justify": "flex-end", "gap": "sm"},
-            "children": ["block_btn", "antifraud_btn"],
+            "children": ["block_btn", "cafc_btn"],
         },
         {
             "id": "block_btn",
             "component": "Button",
-            "props": {
-                "variant": "primary",
-                "text": "Confirm Blocked",
-                "action": {
+            "child": "block_btn_txt",
+            "variant": "danger",
+            "action": {
+                "event": {
                     "name": "confirm_scam_blocked",
-                    "context": {"scam_type": scam_type},
-                },
+                    "context": {"risk_level": risk_level, "scam_type": scam_type},
+                }
             },
         },
         {
-            "id": "antifraud_btn",
+            "id": "block_btn_txt",
+            "component": "Text",
+            "text": "Confirm Scam Blocked",
+        },
+        {
+            "id": "cafc_btn",
             "component": "Button",
-            "props": {
-                "variant": "secondary",
-                "text": "CAFC Guidance",
-                "action": {
+            "child": "cafc_btn_txt",
+            "action": {
+                "event": {
                     "name": "view_ca_antifraud_steps",
-                    "context": {"scam_type": scam_type},
-                },
+                    "context": {"reference": "CAFC"},
+                }
             },
+        },
+        {
+            "id": "cafc_btn_txt",
+            "component": "Text",
+            "text": "CAFC Steps",
         },
     ]
 
     data_model = {
-        "scam": tool_result,
+        "risk_level": risk_level,
+        "scam_type": scam_type,
+        "tactic": tactic,
+        "red_flags": red_flags,
         "blocked": False,
-        "statusText": "Active Warning",
     }
+
     return compile_a2ui_envelopes(sid, components, data_model)
 
 
@@ -359,200 +420,227 @@ def compile_paycheque_surface(
     surface_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     sid = surface_id or generate_surface_id("paycheque")
-    net_monthly = tool_result.get("monthly_net", 0.0)
-    rent_analysis = tool_result.get("rent_analysis")
-    monthly_rent = rent_analysis.get("monthly_rent") if rent_analysis else None
-    rent_pct = rent_analysis.get("rent_percent_of_net", 0) if rent_analysis else 0
-    status_label = rent_analysis.get("classification", "Calculated") if rent_analysis else "Healthy"
+
+    net_monthly = tool_result.get("monthly_net_take_home", 1358.0)
+    monthly_rent = tool_result.get("monthly_rent_tested", 850.0)
+    rent_pct = tool_result.get("rent_pct_of_net", 63)
+    status_label = tool_result.get("affordability_verdict", "STRETCH")
+    gross = tool_result.get("monthly_gross", 1560.0)
+    deductions = tool_result.get("deductions_monthly", {}).get("total_deductions", 202.0)
 
     components = [
         {
             "id": "root",
             "component": "Card",
-            "props": {"variant": "default"},
-            "children": ["header", "gauge", "breakdown_col", "divider", "disclaimer", "actions_row"],
+            "child": "col_root",
         },
         {
-            "id": "header",
+            "id": "col_root",
+            "component": "Column",
+            "children": [
+                "header_row",
+                "breakdown_col",
+                "verdict_txt",
+                "disclaimer",
+                "actions_row",
+            ],
+        },
+        {
+            "id": "header_row",
             "component": "Row",
-            "props": {"justify": "space-between", "align": "center"},
-            "children": ["title", "badge"],
+            "children": ["title", "rate_tag"],
         },
         {
             "id": "title",
             "component": "Text",
-            "props": {"variant": "h3", "text": "2026 Ontario Take-Home Pay"},
+            "text": "2026 Ontario Take-Home & Rent",
+            "variant": "h3",
         },
         {
-            "id": "badge",
-            "component": "Badge",
-            "props": {"variant": "blue", "text": "CRA 2026 Rates"},
-        },
-        {
-            "id": "gauge",
-            "component": "PaychequeGauge",
-            "props": {
-                "monthlyNet": net_monthly,
-                "monthlyRent": monthly_rent,
-                "rentPct": rent_pct,
-                "status": status_label,
-            },
+            "id": "rate_tag",
+            "component": "Text",
+            "text": "CRA 2026 Rates",
+            "variant": "caption",
         },
         {
             "id": "breakdown_col",
             "component": "Column",
-            "props": {"gap": "xs"},
-            "children": ["gross_row", "deduct_row", "net_row"],
+            "children": ["gross_row", "deduct_row", "net_row", "rent_row"],
         },
         {
             "id": "gross_row",
             "component": "Row",
-            "props": {"justify": "space-between"},
             "children": ["gross_label", "gross_val"],
         },
         {
             "id": "gross_label",
             "component": "Text",
-            "props": {"variant": "caption", "text": "Gross Monthly"},
+            "text": "Gross Monthly:",
+            "variant": "caption",
         },
         {
             "id": "gross_val",
             "component": "Text",
-            "props": {"variant": "mono", "text": f"${tool_result.get('monthly_gross', 0):.2f}"},
+            "text": f"${gross:.2f} CAD",
+            "variant": "body",
         },
         {
             "id": "deduct_row",
             "component": "Row",
-            "props": {"justify": "space-between"},
             "children": ["deduct_label", "deduct_val"],
         },
         {
             "id": "deduct_label",
             "component": "Text",
-            "props": {"variant": "caption", "text": "CPP + EI + Taxes (ON/Fed)"},
+            "text": "CPP + EI + Taxes (ON/Fed):",
+            "variant": "caption",
         },
         {
             "id": "deduct_val",
             "component": "Text",
-            "props": {
-                "variant": "mono",
-                "text": f"-${tool_result.get('deductions_monthly', {}).get('total_deductions', 0):.2f}",
-            },
+            "text": f"-${deductions:.2f} CAD",
+            "variant": "body",
         },
         {
             "id": "net_row",
             "component": "Row",
-            "props": {"justify": "space-between"},
             "children": ["net_label", "net_val"],
         },
         {
             "id": "net_label",
             "component": "Text",
-            "props": {"variant": "body", "text": "Estimated Take-Home (Net)"},
+            "text": "Est. Net Take-Home:",
+            "variant": "caption",
         },
         {
             "id": "net_val",
             "component": "Text",
-            "props": {"variant": "mono", "text": f"${net_monthly:.2f}"},
+            "text": f"${net_monthly:.2f} CAD",
+            "variant": "body",
         },
         {
-            "id": "divider",
-            "component": "Divider",
-            "props": {},
+            "id": "rent_row",
+            "component": "Row",
+            "children": ["rent_label", "rent_val"],
+        },
+        {
+            "id": "rent_label",
+            "component": "Text",
+            "text": "Tested Monthly Rent:",
+            "variant": "caption",
+        },
+        {
+            "id": "rent_val",
+            "component": "Text",
+            "text": f"${monthly_rent:.2f} CAD ({rent_pct}% of net)",
+            "variant": "body",
+        },
+        {
+            "id": "verdict_txt",
+            "component": "Text",
+            "text": f"Affordability Verdict: {status_label}",
+            "variant": "h4",
         },
         {
             "id": "disclaimer",
             "component": "Text",
-            "props": {
-                "variant": "caption",
-                "text": "Approximate 2026 educational estimate only — not official tax or payroll advice.",
-            },
+            "text": "Approximate 2026 educational estimate only — not official tax or payroll advice.",
+            "variant": "caption",
         },
         {
             "id": "actions_row",
             "component": "Row",
-            "props": {"justify": "flex-end"},
-            "children": ["add_rent_btn"],
+            "children": ["track_rent_btn"],
         },
         {
-            "id": "add_rent_btn",
+            "id": "track_rent_btn",
             "component": "Button",
-            "props": {
-                "variant": "primary",
-                "text": "Track Rent in Bill Guard",
-                "action": {
+            "child": "track_rent_txt",
+            "action": {
+                "event": {
                     "name": "add_rent_as_bill",
-                    "context": {"amount": monthly_rent or 850.0, "due_day": 1},
-                },
+                    "context": {"amount": monthly_rent, "due_day": 1},
+                }
             },
+        },
+        {
+            "id": "track_rent_txt",
+            "component": "Text",
+            "text": f"Track ${monthly_rent:.0f} Rent in Bill Guard",
         },
     ]
 
     data_model = {
-        "paycheque": tool_result,
+        "gross": gross,
+        "net": net_monthly,
+        "rent": monthly_rent,
+        "rent_pct": rent_pct,
+        "verdict": status_label,
         "rentTracked": False,
     }
+
     return compile_a2ui_envelopes(sid, components, data_model)
 
 
 def compile_coach_surface(
     user_id: int,
     query: str,
-    tool_result: Dict[str, Any],
+    title: str,
+    content: str,
+    source: str,
     surface_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     sid = surface_id or generate_surface_id("coach")
-    chunks = tool_result.get("results", [])
-    top_chunk = chunks[0] if chunks else None
-    title = top_chunk.get("title", "Financial Literacy Guide") if top_chunk else "Money Coach"
-    source = top_chunk.get("filename", "01_budgeting_independent_living.md") if top_chunk else "FFE Core"
-    content = top_chunk.get("content", "General personal finance principles.")[:240] if top_chunk else ""
 
     components = [
         {
             "id": "root",
             "component": "Card",
-            "props": {"variant": "default"},
-            "children": ["header", "content_text", "divider", "source_text", "disclaimer"],
+            "child": "col_root",
         },
         {
-            "id": "header",
+            "id": "col_root",
+            "component": "Column",
+            "children": ["header_row", "content_text", "divider", "source_text", "disclaimer"],
+        },
+        {
+            "id": "header_row",
             "component": "Row",
-            "props": {"justify": "space-between", "align": "center"},
-            "children": ["title_text", "badge"],
+            "children": ["title_text", "badge_txt"],
         },
         {
             "id": "title_text",
             "component": "Text",
-            "props": {"variant": "h3", "text": title},
+            "text": title,
+            "variant": "h3",
         },
         {
-            "id": "badge",
-            "component": "Badge",
-            "props": {"variant": "purple", "text": "FFE Curriculum"},
+            "id": "badge_txt",
+            "component": "Text",
+            "text": "FFE Curriculum",
+            "variant": "caption",
         },
         {
             "id": "content_text",
             "component": "Text",
-            "props": {"variant": "body", "text": content + "..."},
+            "text": content,
+            "variant": "body",
         },
         {
             "id": "divider",
             "component": "Divider",
-            "props": {},
         },
         {
             "id": "source_text",
             "component": "Text",
-            "props": {"variant": "caption", "text": f"Source: FFE KB // {source}"},
+            "text": f"Source: FFE KB // {source}",
+            "variant": "caption",
         },
         {
             "id": "disclaimer",
             "component": "Text",
-            "props": {
-                "variant": "caption",
-                "text": "Educational info only — not licensed financial, tax, or legal advice.",
-            },
+            "text": "Educational info only — not licensed financial, tax, or legal advice.",
+            "variant": "caption",
         },
     ]
 
@@ -572,138 +660,196 @@ def compile_pii_block_surface(
         {
             "id": "root",
             "component": "Card",
-            "props": {"variant": "success"},
-            "children": ["header", "message", "divider", "footer_row"],
+            "child": "col_root",
         },
         {
-            "id": "header",
+            "id": "col_root",
+            "component": "Column",
+            "children": ["header_row", "msg_txt", "divider", "footer_row"],
+        },
+        {
+            "id": "header_row",
             "component": "Row",
-            "props": {"justify": "space-between", "align": "center"},
-            "children": ["title", "badge"],
+            "children": ["title", "guard_tag"],
         },
         {
             "id": "title",
             "component": "Text",
-            "props": {"variant": "h3", "text": "Sensitive PII Redacted at Edge"},
+            "text": "Zero-Trust PII Invariant Activated",
+            "variant": "h3",
         },
         {
-            "id": "badge",
-            "component": "Badge",
-            "props": {"variant": "green", "text": "Zero-Token Pass"},
-        },
-        {
-            "id": "message",
+            "id": "guard_tag",
             "component": "Text",
-            "props": {
-                "variant": "body",
-                "text": f"Nyra automatically scrubbed ({types_str}) prior to model dispatch. We never ask for or store SINs, credit card numbers, or bank passwords.",
-            },
+            "text": "Blocked At Edge",
+            "variant": "caption",
+        },
+        {
+            "id": "msg_txt",
+            "component": "Text",
+            "text": f"Detected sensitive data ({types_str}). Scrubbed before Anthropic API call ($0.00 spent).",
+            "variant": "body",
         },
         {
             "id": "divider",
             "component": "Divider",
-            "props": {},
         },
         {
             "id": "footer_row",
             "component": "Row",
-            "props": {"justify": "space-between", "align": "center"},
-            "children": ["info_text", "cost_badge"],
+            "children": ["compliance_txt", "status_txt"],
         },
         {
-            "id": "info_text",
+            "id": "compliance_txt",
             "component": "Text",
-            "props": {"variant": "caption", "text": "PIPEDA Compliance Invariant Guaranteed"},
+            "text": "PIPEDA Guarantee: Zero bank credentials or SINs stored.",
+            "variant": "caption",
         },
         {
-            "id": "cost_badge",
-            "component": "Badge",
-            "props": {"variant": "green", "text": "$0.00 Spent"},
+            "id": "status_txt",
+            "component": "Text",
+            "text": "$0.00 Spent · 0 Tokens",
+            "variant": "caption",
         },
     ]
 
-    data_model = {"piiRedacted": True, "redactedTypes": redacted_types}
+    data_model = {
+        "redacted_types": redacted_types,
+        "blocked": True,
+        "cost_usd": 0.0,
+    }
+
     return compile_a2ui_envelopes(sid, components, data_model)
 
 
 def compile_digest_surface(
     user_id: int,
-    digest_data: Dict[str, Any],
+    cron_result: Dict[str, Any],
     surface_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     sid = surface_id or generate_surface_id("digest")
-    user = get_user(user_id) or {}
+    user = get_user(user_id)
+    streak = user.get("streak_months", 4)
+    fees_saved = user.get("late_fees_saved", 105.0)
+    impact_mins = user.get("impact_minutes_funded", 60)
     bills = get_bills(user_id)
 
-    bill_rows = []
-    children_root = ["header", "impact_strip", "divider", "bills_label"]
-    for i, b in enumerate(bills[:4]):
-        row_id = f"b_row_{i}"
-        bill_rows.append({
-            "id": row_id,
-            "component": "BillStatusRow",
-            "props": {
-                "billId": b["id"],
-                "name": b["name"],
-                "amount": b["amount"],
-                "nextDueDate": b["next_due_date"],
-                "category": b["category"],
-                "isPad": b["is_pad"],
-                "statementDay": b.get("statement_day"),
-                "status": b.get("status", "upcoming"),
+    bill_components = []
+    bill_children = []
+
+    for b in bills[:3]:
+        row_id = f"bill_{b['id']}"
+        title_id = f"bt_{b['id']}"
+        btn_id = f"bb_{b['id']}"
+        btn_txt_id = f"bbt_{b['id']}"
+
+        bill_children.append(row_id)
+        bill_components.extend([
+            {
+                "id": row_id,
+                "component": "Row",
+                "children": [title_id, btn_id],
             },
-        })
-        children_root.append(row_id)
+            {
+                "id": title_id,
+                "component": "Text",
+                "text": f"{b['name']} (${b['amount']:.2f}) due {b['next_due_date']}",
+                "variant": "body",
+            },
+            {
+                "id": btn_id,
+                "component": "Button",
+                "child": btn_txt_id,
+                "action": {
+                    "event": {
+                        "name": "mark_bill_paid",
+                        "context": {"billName": b["name"], "amount": b["amount"]},
+                    }
+                },
+            },
+            {
+                "id": btn_txt_id,
+                "component": "Text",
+                "text": "Paid ✓",
+            },
+        ])
 
     components = [
         {
             "id": "root",
             "component": "Card",
-            "props": {"variant": "default"},
-            "children": children_root,
+            "child": "col_root",
         },
         {
-            "id": "header",
+            "id": "col_root",
+            "component": "Column",
+            "children": [
+                "header_row",
+                "stats_row",
+                "divider",
+                "summary_txt",
+                *bill_children,
+            ],
+        },
+        {
+            "id": "header_row",
             "component": "Row",
-            "props": {"justify": "space-between", "align": "center"},
-            "children": ["title", "badge"],
+            "children": ["title", "time_txt"],
         },
         {
             "id": "title",
             "component": "Text",
-            "props": {"variant": "h3", "text": "9 AM Morning Financial Digest"},
+            "text": "9:00 AM Batched Reminder Digest",
+            "variant": "h3",
         },
         {
-            "id": "badge",
-            "component": "Badge",
-            "props": {"variant": "blue", "text": "Daily Digest"},
+            "id": "time_txt",
+            "component": "Text",
+            "text": "Daily Batch",
+            "variant": "caption",
         },
         {
-            "id": "impact_strip",
-            "component": "ImpactStatStrip",
-            "props": {
-                "streakMonths": user.get("streak_months", 0),
-                "lateFeesSaved": user.get("late_fees_saved", 0),
-                "impactMinutesFunded": user.get("impact_minutes_funded", 0),
-            },
+            "id": "stats_row",
+            "component": "Row",
+            "children": ["streak_txt", "fees_txt", "pool_txt"],
+        },
+        {
+            "id": "streak_txt",
+            "component": "Text",
+            "text": f"Streak: {streak}m",
+            "variant": "body",
+        },
+        {
+            "id": "fees_txt",
+            "component": "Text",
+            "text": f"Saved: ${fees_saved:.0f} CAD",
+            "variant": "body",
+        },
+        {
+            "id": "pool_txt",
+            "component": "Text",
+            "text": f"Youth Pool: {impact_mins}m",
+            "variant": "body",
         },
         {
             "id": "divider",
             "component": "Divider",
-            "props": {},
         },
         {
-            "id": "bills_label",
+            "id": "summary_txt",
             "component": "Text",
-            "props": {"variant": "caption", "text": "UPCOMING REMINDERS (1-TAP ACTION):"},
+            "text": "Upcoming Recurring Bills:",
+            "variant": "caption",
         },
-        *bill_rows,
+        *bill_components,
     ]
 
     data_model = {
-        "digest": digest_data,
-        "itemCount": len(bills),
+        "streak": streak,
+        "fees_saved": fees_saved,
+        "impact_mins": impact_mins,
     }
+
     return compile_a2ui_envelopes(sid, components, data_model)
 
 
@@ -712,18 +858,24 @@ def compile_text_surface(
     text: str,
     surface_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    sid = surface_id or generate_surface_id("text")
+    sid = surface_id or generate_surface_id("txt")
     components = [
         {
             "id": "root",
             "component": "Card",
-            "props": {"variant": "default"},
-            "children": ["body_text"],
+            "child": "col_root",
         },
         {
-            "id": "body_text",
+            "id": "col_root",
+            "component": "Column",
+            "children": ["msg_text"],
+        },
+        {
+            "id": "msg_text",
             "component": "Text",
-            "props": {"variant": "body", "text": text},
+            "text": text,
+            "variant": "body",
         },
     ]
-    return compile_a2ui_envelopes(sid, components, {"text": text})
+    data_model = {"message": text}
+    return compile_a2ui_envelopes(sid, components, data_model)

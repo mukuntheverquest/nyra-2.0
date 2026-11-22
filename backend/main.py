@@ -70,7 +70,8 @@ class ChatRequest(BaseModel):
 
 class A2UIActionRequest(BaseModel):
     surfaceId: str
-    actionName: str
+    actionName: Optional[str] = None
+    action: Optional[str] = None
     context: Dict[str, Any] = {}
     dataModel: Optional[Dict[str, Any]] = None
     user_id: int = 1
@@ -264,7 +265,7 @@ def process_a2ui_action(req: A2UIActionRequest):
     """
     start_time = time.time()
     user_id = req.user_id
-    action = req.actionName
+    action = req.actionName or req.action or "custom_action"
     ctx = req.context or {}
     dm = req.dataModel or {}
 
@@ -345,7 +346,7 @@ def process_a2ui_action(req: A2UIActionRequest):
     # Return updated A2UI envelope with in-place data model mutation
     a2ui_messages = [
         {
-            "version": "1.0",
+            "version": "v0.9",
             "updateDataModel": {
                 "surfaceId": req.surfaceId,
                 "path": "/",

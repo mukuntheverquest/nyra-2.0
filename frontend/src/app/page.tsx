@@ -1,17 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { NavbarHud } from "@/components/NavbarHud";
-import { HeroSection } from "@/components/HeroSection";
-import { LiveWorkspaceSection } from "@/components/LiveWorkspaceSection";
-import { SkillsBentoSection } from "@/components/SkillsBentoSection";
-import { ImpactPricingSection } from "@/components/ImpactPricingSection";
+import React, { useState, useEffect } from "react";
+import { Navbar } from "@/components/Navbar";
+import { HeroAct } from "@/components/scroll/HeroAct";
+import { InterceptAct } from "@/components/scroll/InterceptAct";
+import { WorkspaceAct } from "@/components/scroll/WorkspaceAct";
+import { AccessAct } from "@/components/scroll/AccessAct";
 import SettingsModal from "@/components/SettingsModal";
-import {
-  A2UIMessageProcessor,
-  SurfaceState,
-  A2UIMessage,
-} from "@/components/a2ui/processor";
 
 const API_BASE = "http://localhost:8000";
 
@@ -29,23 +24,9 @@ export default function Home() {
   const [telemetryLogs, setTelemetryLogs] = useState<any[]>([]);
   const [scamLogs, setScamLogs] = useState<any[]>([]);
   const [latestPiiRedacted, setLatestPiiRedacted] = useState(false);
-
-  // A2UI v1.0 Client State Engine
-  const processorRef = useRef<A2UIMessageProcessor>(new A2UIMessageProcessor());
-  const [surfaces, setSurfaces] = useState<Map<string, SurfaceState>>(new Map());
   const [latestA2UIMessages, setLatestA2UIMessages] = useState<any[]>([]);
 
-  // Sync internal processor state to React state
-  const syncSurfacesFromProcessor = () => {
-    const all = processorRef.current.getAllSurfaces();
-    const newMap = new Map<string, SurfaceState>();
-    for (const s of all) {
-      newMap.set(s.surfaceId, { ...s });
-    }
-    setSurfaces(newMap);
-  };
-
-  // Fetch full state on mount
+  // Fetch initial state on mount
   const fetchState = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/state`);
@@ -66,6 +47,10 @@ export default function Home() {
 
   useEffect(() => {
     fetchState();
+    if (typeof window !== "undefined") {
+      document.documentElement.classList.add("sc-ready");
+      (window as any).ScrollCraft = (window as any).ScrollCraft || { instances: [] };
+    }
   }, []);
 
   // Send message handler (used by both text input and preset chips)
@@ -93,14 +78,9 @@ export default function Home() {
           setLatestPiiRedacted(true);
         }
 
-        // Process any returned A2UI protocol envelopes
         let surfaceIdForMsg: string | undefined = undefined;
         if (Array.isArray(data.a2ui_messages) && data.a2ui_messages.length > 0) {
           setLatestA2UIMessages(data.a2ui_messages);
-          processorRef.current.processMessages(data.a2ui_messages);
-          syncSurfacesFromProcessor();
-
-          // Extract primary surfaceId
           for (const m of data.a2ui_messages) {
             if (m.createSurface) {
               surfaceIdForMsg = m.createSurface.surfaceId;
@@ -112,7 +92,7 @@ export default function Home() {
           }
         }
 
-        // Update full state
+        // Update global state
         if (data.state) {
           setUser(data.state.user);
           setBills(data.state.bills || []);
@@ -121,7 +101,7 @@ export default function Home() {
           setTelemetryLogs(data.state.telemetry_logs || []);
           setScamLogs(data.state.scam_logs || []);
 
-          // Append assistant turn with associated surfaceId
+          // Append assistant turn
           setMessages((prev) => [
             ...prev,
             {
@@ -153,8 +133,7 @@ export default function Home() {
   const handleA2UIAction = async (
     surfaceId: string,
     actionName: string,
-    context?: any,
-    dataModel?: any
+    context?: any
   ) => {
     try {
       const res = await fetch(`${API_BASE}/api/a2ui/action`, {
@@ -164,22 +143,16 @@ export default function Home() {
           surfaceId,
           actionName,
           context: context || {},
-          dataModel: dataModel || {},
           user_id: 1,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-
-        // Mutate surface in place with updateDataModel
         if (Array.isArray(data.a2ui_messages)) {
-          processorRef.current.processMessages(data.a2ui_messages);
-          syncSurfacesFromProcessor();
           setLatestA2UIMessages(data.a2ui_messages);
         }
 
-        // Refresh global state so bills, streak, and telemetry reflect the change
         if (data.state) {
           setUser(data.state.user);
           setBills(data.state.bills || []);
@@ -201,12 +174,9 @@ export default function Home() {
       });
       if (res.ok) {
         const data = await res.json();
-
         let surfaceIdForDigest: string | undefined = undefined;
         if (Array.isArray(data.a2ui_messages) && data.a2ui_messages.length > 0) {
           setLatestA2UIMessages(data.a2ui_messages);
-          processorRef.current.processMessages(data.a2ui_messages);
-          syncSurfacesFromProcessor();
           for (const m of data.a2ui_messages) {
             if (m.createSurface) {
               surfaceIdForDigest = m.createSurface.surfaceId;
@@ -246,8 +216,6 @@ export default function Home() {
       });
       if (res.ok) {
         const data = await res.json();
-        processorRef.current.clear();
-        setSurfaces(new Map());
         setLatestA2UIMessages([]);
         if (data.state) {
           setUser(data.state.user);
@@ -281,34 +249,39 @@ export default function Home() {
     }
   };
 
-  const scrollToWorkspace = () => {
-    const el = document.getElementById("chapter-01");
+  const scrollToAct = (actId: string) => {
+    const el = document.getElementById(actId);
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] text-[#F1F5F9] flex flex-col font-sans selection:bg-[#2177D1]/30 selection:text-[#5BA3EC]">
-      {/* 1. Persistent Minimal Top HUD */}
-      <NavbarHud
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-[#2177D1]/15 selection:text-[#2177D1]">
+      {/* 1. Translucent Frosted Navbar */}
+      <Navbar
         activeMode={activeMode}
         onToggleMode={() => setActiveMode(activeMode === "live" ? "mock" : "live")}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onScrollToWorkspace={scrollToWorkspace}
+        onScrollToAct={scrollToAct}
       />
 
       <main className="flex-1 flex flex-col">
-        {/* 2. Chapter 00 // INTRO */}
-        <HeroSection onScrollToWorkspace={scrollToWorkspace} />
+        {/* Act 1: Layered White Editorial Hero */}
+        <HeroAct
+          onScrollToWorkspace={() => scrollToAct("act-workspace")}
+          onScrollToIntercept={() => scrollToAct("act-intercept")}
+        />
 
-        {/* 3. Chapter 01 // MOBILE + DASHBOARD */}
-        <LiveWorkspaceSection
+        {/* Act 2: Scroll-Scrubbed Intercept & Pinned Morph */}
+        <InterceptAct onScrollToWorkspace={() => scrollToAct("act-workspace")} />
+
+        {/* Act 3: The Engineered Peak (Real @a2ui/react Mobile App + Light HUD) */}
+        <WorkspaceAct
           user={user}
           bills={bills}
           trials={trials}
           messages={messages}
-          surfaces={surfaces}
           telemetryLatest={telemetryLatest}
           telemetryLogs={telemetryLogs}
           scamLogs={scamLogs}
@@ -322,11 +295,8 @@ export default function Home() {
           onResetDemo={handleResetDemo}
         />
 
-        {/* 4. Chapter 02 // ENGINE */}
-        <SkillsBentoSection />
-
-        {/* 5. Chapter 03 // ACCESS & IMPACT */}
-        <ImpactPricingSection onOpenSettings={() => setIsSettingsOpen(true)} />
+        {/* Act 4: Grounded Close (Mission, Pricing & Youth Impact) */}
+        <AccessAct onOpenSettings={() => setIsSettingsOpen(true)} />
       </main>
 
       {/* Settings & CASL Modal */}

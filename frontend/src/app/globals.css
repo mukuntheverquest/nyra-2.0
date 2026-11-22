@@ -3,58 +3,68 @@
 @tailwind utilities;
 
 :root {
-  /* Igloo-Lite Atmospheric Matte Slate Canvas */
-  --bg-void: #0B0E14;
-  --bg-surface: #121620;
-  --bg-glass: rgba(18, 22, 32, 0.74);
-  --border-slate: #383E4E;
-  --border-subtle: rgba(182, 186, 197, 0.14);
-  --text-primary: #F1F5F9;
-  --text-silver: #B6BAC5;
-  --text-muted: #64748B;
+  /* Strict White / Light Editorial Architectural Canvas */
+  --bg-canvas: #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F8FAFC;
+  --bg-muted: #F1F5F9;
+  --border-light: #E2E8F0;
+  --border-subtle: #F1F5F9;
 
-  /* Nyra Brand Accent (Extracted from nyra-app.ca) */
+  /* Typography Ink (WCAG AA+ & AAA contrast on white) */
+  --text-primary: #0F172A;   /* 15.8:1 contrast on white */
+  --text-secondary: #334155; /* 9.6:1 contrast on white */
+  --text-muted: #64748B;     /* 4.6:1 contrast on white */
+
+  /* Nyra Verified Brand Blue (from nyra-app.ca) */
   --nyra-accent: #2177D1;
+  --nyra-accent-hover: #3A8EE0;
   --nyra-accent-dark: #1658A8;
-  --nyra-accent-bright: #3A8EE0;
-  --nyra-accent-cyan: #5BA3EC;
-  --nyra-accent-glow: rgba(33, 119, 209, 0.22);
+  --nyra-accent-tint: #EFF6FF;
+  --nyra-accent-glow: rgba(33, 119, 209, 0.12);
 
-  /* Semantic Status & Guardrail Tokens */
-  --status-amber: #C39A35;
-  --status-amber-light: #D4AE52;
-  --status-red: #D04040;
-  --status-green: #34C759;
+  /* Semantic Status Tokens (Light-Surface Tuned) */
+  --status-danger: #DC2626;
+  --status-danger-bg: #FEF2F2;
+  --status-danger-border: #FCA5A5;
+
+  --status-warning: #D97706;
+  --status-warning-bg: #FFFBEB;
+  --status-warning-border: #FDE68A;
+
+  --status-success: #059669;
+  --status-success-bg: #ECFDF5;
+  --status-success-border: #A7F3D0;
 }
 
 body {
   color: var(--text-primary);
-  background: var(--bg-void);
+  background-color: var(--bg-canvas);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
-  selection-background-color: var(--nyra-accent-glow);
+  selection-background-color: var(--nyra-accent-tint);
 }
 
-/* Custom Sleek Scrollbar */
+/* Crisp Clean Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0E14;
+  background: #F8FAFC;
 }
 ::-webkit-scrollbar-thumb {
-  background: #383E4E;
+  background: #CBD5E1;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #2177D1;
 }
 
-/* Atmospheric Subtle Grid Pattern */
-.bg-grid-slate {
+/* Subtle Architectural Grid on White */
+.bg-grid-light {
   background-size: 32px 32px;
   background-image: 
-    linear-gradient(to right, rgba(56, 62, 78, 0.15) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(56, 62, 78, 0.15) 1px, transparent 1px);
+    linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
 }

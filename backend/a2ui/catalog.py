@@ -1,27 +1,36 @@
 from typing import Dict, Any, Set
 
-CATALOG_ID = "nyra.ffe.mobile.v1"
+CATALOG_ID = "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
+LEGACY_CATALOG_ID = "nyra.ffe.mobile.v1"
 
-# Standard A2UI Primitives + Nyra Custom Financial Widgets
+# Standard A2UI v0.9 basicCatalog components + domain extensions
 WHITELISTED_COMPONENTS: Set[str] = {
-    # Standard Primitives
+    # Standard basicCatalog Primitives
     "Card",
     "Column",
     "Row",
     "Text",
-    "Badge",
+    "Button",
     "Divider",
     "List",
-    "Button",
+    "Tabs",
+    "Modal",
+    "TextField",
+    "CheckBox",
+    "ChoicePicker",
+    "Slider",
+    "DateTimeInput",
+    "Icon",
+    "Image",
+    # Domain / Legacy extensions
+    "Badge",
     "ProgressBar",
-    # Nyra Custom Domain Widgets
     "ScamRiskBanner",
     "PaychequeGauge",
     "BillStatusRow",
     "ImpactStatStrip",
 }
 
-# Alias for spec test compatibility
 ALLOWED_COMPONENT_TYPES = WHITELISTED_COMPONENTS
 
 
