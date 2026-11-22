@@ -3,7 +3,7 @@ FROM node:20-slim AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY frontend ./
 RUN npm run build
@@ -35,11 +35,11 @@ COPY --from=frontend-builder /app/frontend/node_modules ./frontend/node_modules
 COPY frontend/next.config.mjs ./frontend/
 
 # Copy startup orchestrator script
-COPY scripts/start.sh ./scripts/start.sh
-RUN chmod +x ./scripts/start.sh
+COPY scripts/start.py ./scripts/start.py
 
 ENV PORT=10000
 ENV BACKEND_INTERNAL_URL="http://127.0.0.1:8000"
+ENV NODE_ENV=production
 EXPOSE 10000
 
-CMD ["./scripts/start.sh"]
+CMD ["python", "scripts/start.py"]

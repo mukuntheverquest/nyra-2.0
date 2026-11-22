@@ -1,0 +1,13 @@
+node_modules
+frontend/node_modules
+.next
+frontend/.next
+.git
+.pytest_cache
+__pycache__
+backend/__pycache__
+*.db
+*.sqlite3
+scratch
+scrollcraft
+*.log
