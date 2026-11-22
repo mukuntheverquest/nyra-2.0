@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nyra 2.0 · 18-Month Gated Roadmap &amp; Kill-Switch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #090d16;
+      --color-surface: #111827;
+      --color-ink:     #f8fafc;
+      --color-muted:   #94a3b8;
+      --color-accent:  #10b981;
+      --color-rose:    #f43f5e;
+      --color-amber:   #f59e0b;
+      --color-purple:  #a855f7;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 2rem;
+    }
+
+    .frame { max-width: 1240px; width: 100%; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: 0.4rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.8rem, 2.5vw + 1rem, 2.6rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.4rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--color-muted);
+      margin-bottom: 1.75rem;
+      max-width: 900px;
+      line-height: 1.5;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: var(--color-surface);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Financial Futures Education (FFE) · Executive Strategic Roadmap</p>
+    <h1>18-Month Gated Roadmap, $20K Cash Gate &amp; Beta Kill-Switch</h1>
+    <p class="subtitle">Strict two-stage operational sequence protecting FFE's core workshop reserves, enforcing the $20,000 cash gate, and defining unambiguous retention gates before campus rollout.</p>
+
+    <svg viewBox="0 0 1200 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="road-title road-desc">
+      <title id="road-title">18-Month Gated Roadmap and Beta Kill-Switch</title>
+      <desc id="road-desc">Visual flowchart and timeline displaying Stage 1 workshop cash generation, the $20,000 liquid reserve gate, Stage 2 build, and the 60-day 40% retention kill-switch.</desc>
+      
+      <defs>
+        <pattern id="grid-dots-road" width="24" height="24" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.06)"/>
+        </pattern>
+        <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#10b981"/>
+        </marker>
+        <marker id="arrow-amber" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#f59e0b"/>
+        </marker>
+        <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#f43f5e"/>
+        </marker>
+      </defs>
+
+      <!-- Background -->
+      <rect width="100%" height="100%" fill="#0d131f"/>
+      <rect width="100%" height="100%" fill="url(#grid-dots-road)"/>
+
+      <!-- STAGE 1: MONTHS 1–8 CONTAINER (X: 40, W: 450) -->
+      <rect x="40" y="55" width="450" height="570" rx="14" fill="rgba(30, 41, 59, 0.4)" stroke="#38bdf8" stroke-width="1.4"/>
+      
+      <!-- Stage 1 Title -->
+      <rect x="60" y="75" width="410" height="55" rx="8" fill="#1e293b" stroke="#38bdf8"/>
+      <text x="80" y="100" fill="#38bdf8" font-family="'Geist', sans-serif" font-size="15" font-weight="700">STAGE 1: MONTHS 1 – 8</text>
+      <text x="80" y="118" fill="#94a3b8" font-family="'Geist Mono', monospace" font-size="10">Pause Nyra 1.0 • Scale Core Cash Flow • Zero App Spend</text>
+
+      <!-- Step 1.1 -->
+      <rect x="60" y="145" width="410" height="85" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="80" y="170" fill="#f8fafc" font-family="'Geist', sans-serif" font-size="13" font-weight="700">1. Pause Software &amp; Eliminate Burn</text>
+      <text x="80" y="190" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Cease marketing spend and server overhead on Nyra 1.0</text>
+      <text x="80" y="208" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Prevent founder support burnout during academic terms</text>
+      <text x="80" y="224" fill="#38bdf8" font-family="'Geist Mono', monospace" font-size="9">Base Reserve Protected: $5,000 Liquid Unconditionally Locked</text>
+
+      <!-- Step 1.2 -->
+      <rect x="60" y="245" width="410" height="95" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="80" y="270" fill="#f8fafc" font-family="'Geist', sans-serif" font-size="13" font-weight="700">2. Scale High-Margin FFE Workshop Engine</text>
+      <text x="80" y="290" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• 80/20 Modular Workshops for universities &amp; student unions</text>
+      <text x="80" y="308" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Corporate wellness sessions + grant sponsorships</text>
+      <text x="80" y="328" fill="#10b981" font-family="'Geist Mono', monospace" font-size="9">Target Revenue: $60,000 – $65,000 Organic Cash Flow</text>
+
+      <!-- Step 1.3 -->
+      <rect x="60" y="355" width="410" height="95" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="80" y="380" fill="#f8fafc" font-family="'Geist', sans-serif" font-size="13" font-weight="700">3. Curate Institutional B2B2C Pipeline</text>
+      <text x="80" y="400" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Pre-negotiate campus bulk seat distribution (McMaster)</text>
+      <text x="80" y="418" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Bundle $10 codes into FFE's $7,000+ workshop contracts</text>
+      <text x="80" y="438" fill="#38bdf8" font-family="'Geist Mono', monospace" font-size="9">Zero-CAC Institutional Distribution Channel Ready</text>
+
+      <!-- Stage 1 Gate Callout -->
+      <rect x="60" y="465" width="410" height="135" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="80" y="492" fill="#fbbf24" font-family="'Geist', sans-serif" font-size="13" font-weight="700">THE $20,000 LIQUID CASH GATE</text>
+      <text x="80" y="512" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">Build capital ($8K–$10K) is strictly locked until:</text>
+      <text x="80" y="534" fill="#f8fafc" font-family="'Geist Mono', monospace" font-size="11" font-weight="700">Accumulated FFE Reserve &gt;= $20,000 CAD</text>
+      <text x="80" y="554" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="10">Protects non-profit continuity &amp; founder reserves</text>
+      <text x="80" y="574" fill="#10b981" font-family="'Geist Mono', monospace" font-size="9">GATE INVARIANT: STRICT FINANCIAL PREREQUISITE</text>
+
+
+      <!-- MIDDLE CONNECTOR (CASH GATE BARRIER) -->
+      <line x1="490" y1="535" x2="550" y2="535" stroke="#f59e0b" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrow-amber)"/>
+
+
+      <!-- STAGE 2: MONTHS 9–18 CONTAINER (X: 560, W: 600) -->
+      <rect x="560" y="55" width="600" height="570" rx="14" fill="rgba(30, 41, 59, 0.4)" stroke="#10b981" stroke-width="1.4"/>
+      
+      <!-- Stage 2 Title -->
+      <rect x="580" y="75" width="560" height="55" rx="8" fill="#1e293b" stroke="#10b981"/>
+      <text x="600" y="100" fill="#34d399" font-family="'Geist', sans-serif" font-size="15" font-weight="700">STAGE 2: MONTHS 9 – 18</text>
+      <text x="600" y="118" fill="#94a3b8" font-family="'Geist Mono', monospace" font-size="10">Ring-Fenced Build • 60-Day Closed Beta • 40% Retention Kill-Switch</text>
+
+      <!-- Step 2.1: Build Phase -->
+      <rect x="580" y="145" width="560" height="85" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="600" y="170" fill="#f8fafc" font-family="'Geist', sans-serif" font-size="13" font-weight="700">1. Ring-Fenced Development ($8,000 – $10,000 Budget)</text>
+      <text x="600" y="190" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Build text-first Python/FastAPI harness with Haiku 5.5 caching</text>
+      <text x="600" y="208" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Asynchronous 48h SLA triage via part-time McMaster contractor</text>
+      <text x="600" y="224" fill="#10b981" font-family="'Geist Mono', monospace" font-size="9">Strict Scope: Zero bank linking, max 300 tokens, 7 strict tools</text>
+
+      <!-- Step 2.2: 60-Day Closed Beta & Kill-Switch -->
+      <rect x="580" y="245" width="560" height="155" rx="8" fill="#1e293b" stroke="#f43f5e" stroke-width="1.4"/>
+      <text x="600" y="270" fill="#f43f5e" font-family="'Geist', sans-serif" font-size="13" font-weight="700">2. 60-Day Closed Beta (McMaster Cohort N=150–250)</text>
+      <text x="600" y="290" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">Students activate bulk code during live 90-minute workshop exercise.</text>
+      
+      <!-- Kill-Switch Formula Box -->
+      <rect x="600" y="303" width="520" height="50" rx="6" fill="#450a0a" stroke="#f43f5e"/>
+      <text x="615" y="323" fill="#fecdd3" font-family="'Geist Mono', monospace" font-size="10" font-weight="700">
+        KILL-SWITCH INVARIANT: Retention &gt;= 40% (Days 31–60)
+      </text>
+      <text x="615" y="341" fill="#fecdd3" font-family="'Geist', sans-serif" font-size="9">
+        Defined as: sms_active=1 AND &gt;=1 active event (bill paid, trial set, scam check)
+      </text>
+
+      <text x="600" y="370" fill="#f8fafc" font-family="'Geist', sans-serif" font-size="10">
+        • If &lt; 40% active: CLEAN TERMINATION. Zero additional capital spent.
+      </text>
+      <text x="600" y="388" fill="#34d399" font-family="'Geist', sans-serif" font-size="10">
+        • If &gt;= 40% active: GREENLIGHT Full Multi-Campus Institutional Rollout.
+      </text>
+
+      <!-- Step 2.3: Scale & Impact -->
+      <rect x="580" y="415" width="560" height="185" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.2"/>
+      <text x="600" y="440" fill="#34d399" font-family="'Geist', sans-serif" font-size="13" font-weight="700">3. Full Institutional Scale &amp; 20% Youth Mission Pool</text>
+      <text x="600" y="460" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Expand to Ontario universities, colleges, and youth agencies</text>
+      <text x="600" y="478" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Bundle $10 bulk seats across 5,000+ workshop attendees annually</text>
+      <text x="600" y="496" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">• Organic referral program ("Save a Friend, Fund a Youth")</text>
+      
+      <line x1="600" y1="512" x2="1120" y2="512" stroke="#334155" stroke-width="1"/>
+
+      <text x="600" y="535" fill="#f8fafc" font-family="'Geist', sans-serif" font-size="12" font-weight="700">
+        Social Enterprise Impact Velocity:
+      </text>
+      <text x="600" y="555" fill="#34d399" font-family="'Geist Mono', monospace" font-size="11">
+        20% of Net Profits -&gt; Fully funds free workshops for CAS &amp; detention youth
+      </text>
+      <text x="600" y="575" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="9">
+        Sustainable perpetual flywheel aligning software scale with charitable mission.
+      </text>
+    </svg>
+  </div>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nyra 2.0 · Unit Economics Comparison</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #090d16;
+      --color-surface: #111827;
+      --color-ink:     #f8fafc;
+      --color-muted:   #94a3b8;
+      --color-accent:  #10b981;
+      --color-rose:    #f43f5e;
+      --color-amber:   #f59e0b;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 2rem;
+    }
+
+    .frame { max-width: 1240px; width: 100%; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: 0.4rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.8rem, 2.5vw + 1rem, 2.6rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.4rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--color-muted);
+      margin-bottom: 1.75rem;
+      max-width: 900px;
+      line-height: 1.5;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: var(--color-surface);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Financial Futures Education (FFE) · Unit Economics &amp; Margin Analysis</p>
+    <h1>Nyra 1.0 vs. Nyra 2.0: Unit Economics &amp; Mission Viability</h1>
+    <p class="subtitle">Side-by-side financial model contrasting the high-churn, uncapped-API direct consumer app with the guardrailed B2B2C institutional harness.</p>
+
+    <svg viewBox="0 0 1200 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="econ-title econ-desc">
+      <title id="econ-title">Nyra 1.0 vs. Nyra 2.0 Unit Economics Comparison</title>
+      <desc id="econ-desc">Comparative breakdown of pricing, payment processing drag, generative AI API cost per user, gross margins, and youth workshop funding capacity.</desc>
+      
+      <defs>
+        <pattern id="grid-dots-econ" width="24" height="24" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.06)"/>
+        </pattern>
+        <linearGradient id="fail-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#1e293b" stop-opacity="0.8"/>
+        </linearGradient>
+        <linearGradient id="pass-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#10b981" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#1e293b" stop-opacity="0.8"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Background -->
+      <rect width="100%" height="100%" fill="#0d131f"/>
+      <rect width="100%" height="100%" fill="url(#grid-dots-econ)"/>
+
+      <!-- LEFT COLUMN: NYRA 1.0 (FAILED DIRECT CONSUMER APP) -->
+      <rect x="40" y="55" width="530" height="570" rx="14" fill="url(#fail-grad)" stroke="#f43f5e" stroke-width="1.4"/>
+      
+      <!-- Nyra 1.0 Header -->
+      <rect x="60" y="75" width="490" height="55" rx="8" fill="#1e293b" stroke="#334155"/>
+      <text x="80" y="100" fill="#f43f5e" font-family="'Geist', sans-serif" font-size="15" font-weight="700">NYRA 1.0 — Generic Consumer SaaS</text>
+      <text x="80" y="118" fill="#94a3b8" font-family="'Geist Mono', monospace" font-size="10">Direct B2C App • Stripe Monthly • Unconstrained AI</text>
+
+      <!-- 1.0 Metric 1: Pricing & Drag -->
+      <rect x="60" y="145" width="490" height="75" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="80" y="170" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="12">Pricing Model &amp; Processing Drag</text>
+      <text x="80" y="196" fill="#f8fafc" font-family="'Geist Mono', monospace" font-size="17" font-weight="700">$3.00 / month</text>
+      <text x="80" y="212" fill="#f43f5e" font-family="'Geist', sans-serif" font-size="11">13.0% Stripe Drag ($0.39 fixed fee on $3.00 charge)</text>
+
+      <!-- 1.0 Metric 2: AI Token Spend -->
+      <rect x="60" y="235" width="490" height="85" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="80" y="260" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="12">Monthly AI API Spend / Active User</text>
+      <text x="80" y="287" fill="#f43f5e" font-family="'Geist Mono', monospace" font-size="17" font-weight="700">$0.85 – $1.40 USD / mo</text>
+      <text x="80" y="307" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="10">No prompt caching, unbounded queries, volatile bills</text>
+
+      <!-- 1.0 Metric 3: Gross Margin -->
+      <rect x="60" y="335" width="490" height="75" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="80" y="360" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="12">Net Gross Margin after Stripe &amp; Tokens</text>
+      <text x="80" y="388" fill="#f43f5e" font-family="'Geist Mono', monospace" font-size="18" font-weight="800">~22% – 35% Margin</text>
+      <text x="80" y="403" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">Net profit &lt; $0.60 CAD per user</text>
+
+      <!-- 1.0 Metric 4: FFE Workshop Impact Capacity -->
+      <rect x="60" y="425" width="490" height="90" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="80" y="450" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="12">Scale Required to Fund 1 Workshop ($1,500)</text>
+      <text x="80" y="480" fill="#f43f5e" font-family="'Geist Mono', monospace" font-size="18" font-weight="800">2,500 Active Subscribers</text>
+      <text x="80" y="500" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="10">High ad-spend CAC made organic non-profit scaling impossible</text>
+
+      <!-- 1.0 Verdict Callout -->
+      <rect x="60" y="530" width="490" height="75" rx="8" fill="#450a0a" stroke="#f43f5e"/>
+      <text x="80" y="555" fill="#fecdd3" font-family="'Geist', sans-serif" font-size="12" font-weight="700">FATAL FAILURE MECHANISM:</text>
+      <text x="80" y="575" fill="#fecdd3" font-family="'Geist', sans-serif" font-size="10">CAC exceeded lifetime value; volatile token fees killed margin;</text>
+      <text x="80" y="593" fill="#fecdd3" font-family="'Geist', sans-serif" font-size="10">Founders suffered support burnout without full-time staff.</text>
+
+
+      <!-- RIGHT COLUMN: NYRA 2.0 (GUARDRAILED B2B2C HARNESS) -->
+      <rect x="630" y="55" width="530" height="570" rx="14" fill="url(#pass-grad)" stroke="#10b981" stroke-width="1.8"/>
+      
+      <!-- Nyra 2.0 Header -->
+      <rect x="650" y="75" width="490" height="55" rx="8" fill="#1e293b" stroke="#10b981"/>
+      <text x="670" y="100" fill="#34d399" font-family="'Geist', sans-serif" font-size="15" font-weight="700">NYRA 2.0 — Guardrailed B2B2C Harness</text>
+      <text x="670" y="118" fill="#94a3b8" font-family="'Geist Mono', monospace" font-size="10">Campus Bulk Seats + $45/yr B2C • Caching • Quota-Guarded</text>
+
+      <!-- 2.0 Metric 1: Pricing & Drag -->
+      <rect x="650" y="145" width="490" height="75" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="670" y="170" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="12">Pricing Model &amp; Processing Drag</text>
+      <text x="670" y="196" fill="#34d399" font-family="'Geist Mono', monospace" font-size="17" font-weight="700">$45/yr B2C | $10/seat B2B2C</text>
+      <text x="670" y="212" fill="#10b981" font-family="'Geist', sans-serif" font-size="11">~3.6% Payment Drag (Annual card or bulk invoice)</text>
+
+      <!-- 2.0 Metric 2: AI Token Spend -->
+      <rect x="650" y="235" width="490" height="85" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="670" y="260" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="12">Monthly AI API Spend / Active User</text>
+      <text x="670" y="287" fill="#34d399" font-family="'Geist Mono', monospace" font-size="17" font-weight="700">&lt; $0.02 CAD / month</text>
+      <text x="670" y="307" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="10">Haiku 5.5 prompt caching (90% discount) + 25 msg hard quota cap</text>
+
+      <!-- 2.0 Metric 3: Gross Margin -->
+      <rect x="650" y="335" width="490" height="75" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="670" y="360" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="12">Net Gross Margin after Payment &amp; AI</text>
+      <text x="670" y="388" fill="#34d399" font-family="'Geist Mono', monospace" font-size="18" font-weight="800">~84% Gross Margin</text>
+      <text x="670" y="403" fill="#cbd5e1" font-family="'Geist', sans-serif" font-size="10">Net profit ~$37.80 CAD / annual subscriber</text>
+
+      <!-- 2.0 Metric 4: FFE Workshop Impact Capacity -->
+      <rect x="650" y="425" width="490" height="90" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="670" y="450" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="12">Scale Required to Fund 2+ Workshops ($3,000+)</text>
+      <text x="670" y="480" fill="#34d399" font-family="'Geist Mono', monospace" font-size="18" font-weight="800">2 Campus Deals + 150 B2C Users</text>
+      <text x="670" y="500" fill="#94a3b8" font-family="'Geist', sans-serif" font-size="10">Directly leverages FFE's existing university partner pipeline</text>
+
+      <!-- 2.0 Verdict Callout -->
+      <rect x="650" y="530" width="490" height="75" rx="8" fill="#064e3b" stroke="#10b981"/>
+      <text x="670" y="555" fill="#a7f3d0" font-family="'Geist', sans-serif" font-size="12" font-weight="700">SUSTAINABLE SOCIAL ENTERPRISE ENGINE:</text>
+      <text x="670" y="575" fill="#a7f3d0" font-family="'Geist', sans-serif" font-size="10">Zero CAC via campus cohorts • Guaranteed API ceiling;</text>
+      <text x="670" y="593" fill="#a7f3d0" font-family="'Geist', sans-serif" font-size="10">20% of net profits directly fund youth financial literacy.</text>
+    </svg>
+  </div>
+</body>
+</html>
