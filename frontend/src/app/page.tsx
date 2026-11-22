@@ -1,12 +1,23 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Navbar } from "@/components/Navbar";
-import { HeroAct } from "@/components/scroll/HeroAct";
-import { InterceptAct } from "@/components/scroll/InterceptAct";
 import { WorkspaceAct } from "@/components/scroll/WorkspaceAct";
 import { AccessAct } from "@/components/scroll/AccessAct";
 import SettingsModal from "@/components/SettingsModal";
+
+// Dynamically import DollarSculptureStage with ssr: false and an exact 400vh placeholder
+const DollarSculptureStage = dynamic(
+  () =>
+    import("@/components/hero3d/DollarSculptureStage").then(
+      (m) => m.DollarSculptureStage
+    ),
+  {
+    ssr: false,
+    loading: () => <div className="h-[400vh] w-full bg-white" />,
+  }
+);
 
 const API_BASE = "http://localhost:8000";
 
@@ -14,6 +25,7 @@ export default function Home() {
   const [activeMode, setActiveMode] = useState<"live" | "mock">("mock");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showNavbar, setShowNavbar] = useState(false);
 
   // Live state from FastAPI backend
   const [user, setUser] = useState<any>(null);
@@ -51,6 +63,17 @@ export default function Home() {
       document.documentElement.classList.add("sc-ready");
       (window as any).ScrollCraft = (window as any).ScrollCraft || { instances: [] };
     }
+
+    // Workspace Navbar Behavior: strictly hidden while inside 3D Hero Stage (< stageHeight - 120px)
+    const handleScroll = () => {
+      const stageHeight = window.innerHeight * 4;
+      const isPastStage = window.scrollY >= (stageHeight - window.innerHeight * 0.8);
+      setShowNavbar(isPastStage);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Send message handler (used by both text input and preset chips)
@@ -249,8 +272,9 @@ export default function Home() {
     }
   };
 
-  const scrollToAct = (actId: string) => {
-    const el = document.getElementById(actId);
+  const scrollTo = (targetId: string) => {
+    const cleanId = targetId.replace("#", "");
+    const el = document.getElementById(cleanId);
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
     }
@@ -258,45 +282,51 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-[#2177D1]/15 selection:text-[#2177D1]">
-      {/* 1. Translucent Frosted Navbar */}
-      <Navbar
-        activeMode={activeMode}
-        onToggleMode={() => setActiveMode(activeMode === "live" ? "mock" : "live")}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onScrollToAct={scrollToAct}
-      />
+      {/* 1. Workspace Sticky Navbar: Fades in only once user scrolls into #live-workspace */}
+      <div
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
+          showNavbar
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 -translate-y-4 pointer-events-none"
+        }`}
+      >
+        <Navbar
+          activeMode={activeMode}
+          onToggleMode={() => setActiveMode(activeMode === "live" ? "mock" : "live")}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onScrollToAct={scrollTo}
+        />
+      </div>
 
       <main className="flex-1 flex flex-col">
-        {/* Act 1: Layered White Editorial Hero */}
-        <HeroAct
-          onScrollToWorkspace={() => scrollToAct("act-workspace")}
-          onScrollToIntercept={() => scrollToAct("act-intercept")}
-        />
+        {/* Phase 2: 3D Procedural Modular $ Sculpture Stage (400vh) */}
+        <DollarSculptureStage onJumpToApp={() => scrollTo("live-workspace")} />
 
-        {/* Act 2: Scroll-Scrubbed Intercept & Pinned Morph */}
-        <InterceptAct onScrollToWorkspace={() => scrollToAct("act-workspace")} />
+        {/* Phase 3: Live A2UI Mobile App & Companion Real-Time HUD */}
+        <div id="live-workspace">
+          <WorkspaceAct
+            user={user}
+            bills={bills}
+            trials={trials}
+            messages={messages}
+            telemetryLatest={telemetryLatest}
+            telemetryLogs={telemetryLogs}
+            scamLogs={scamLogs}
+            latestA2UIMessages={latestA2UIMessages}
+            latestPiiRedacted={latestPiiRedacted}
+            isLoading={isLoading}
+            activeMode={activeMode}
+            onSendMessage={handleSendMessage}
+            onAction={handleA2UIAction}
+            onTriggerCron={handleTriggerCron}
+            onResetDemo={handleResetDemo}
+          />
+        </div>
 
-        {/* Act 3: The Engineered Peak (Real @a2ui/react Mobile App + Light HUD) */}
-        <WorkspaceAct
-          user={user}
-          bills={bills}
-          trials={trials}
-          messages={messages}
-          telemetryLatest={telemetryLatest}
-          telemetryLogs={telemetryLogs}
-          scamLogs={scamLogs}
-          latestA2UIMessages={latestA2UIMessages}
-          latestPiiRedacted={latestPiiRedacted}
-          isLoading={isLoading}
-          activeMode={activeMode}
-          onSendMessage={handleSendMessage}
-          onAction={handleA2UIAction}
-          onTriggerCron={handleTriggerCron}
-          onResetDemo={handleResetDemo}
-        />
-
-        {/* Act 4: Grounded Close (Mission, Pricing & Youth Impact) */}
-        <AccessAct onOpenSettings={() => setIsSettingsOpen(true)} />
+        {/* Phase 4: Access, Pricing & 20% Youth Impact Pool */}
+        <div id="access-impact">
+          <AccessAct onOpenSettings={() => setIsSettingsOpen(true)} />
+        </div>
       </main>
 
       {/* Settings & CASL Modal */}

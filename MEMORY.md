@@ -53,6 +53,7 @@ All frontend interfaces strictly adhere to the guidelines established in `docs/S
 ### Frontend (`frontend/`)
 * **Framework:** Next.js 15.0.3 (App Router) + React 19 + TypeScript.
 * **Styling:** Tailwind CSS 3.4.15 + PostCSS + Lucide React icons.
+* **3D Engine:** Pure `three` (`^0.170.0`) + `@types/three` (`RoundedBoxGeometry` from `three/examples/jsm/geometries/RoundedBoxGeometry.js`).
 * **A2UI Packages:**
   * `@a2ui/react` (`^0.15.0`) — Provides `A2uiSurface`.
   * `@a2ui/web_core` (`^0.15.0`) — Provides `MessageProcessor` and `basicCatalog`.
@@ -94,17 +95,20 @@ nyra-2.0/
 │   │   │   ├── globals.css            <-- Pure white ground tokens & scrollbar styles
 │   │   │   └── page.tsx               <-- Root page coordinating the 4-act scroll flow
 │   │   └── components/
-│   │       ├── Navbar.tsx             <-- Translucent frosted glass navbar with mode toggle
+│   │       ├── Navbar.tsx             <-- Translucent frosted glass navbar with mode toggle (appears at #live-workspace)
 │   │       ├── BillsAndImpactCard.tsx <-- White HUD: streak, fees saved, bills table, trials table
 │   │       ├── TelemetryCard.tsx      <-- White HUD: Haiku 5.5 token breakdown, cache rate & unit economics
 │   │       ├── GuardrailLogCard.tsx   <-- White HUD: PII scrubbed indicators & tool traces
 │   │       ├── A2UIWireInspector.tsx  <-- Collapsible inspector for createSurface/updateComponents envelopes
 │   │       ├── SettingsModal.tsx      <-- B2B campus promo codes, 1-click cancel, PIPEDA/CASL modal
+│   │       ├── hero3d/
+│   │       │   ├── dollarBlocks.ts    <-- 25-block modular procedural $ matrix (stem, curves, callout targets)
+│   │       │   └── DollarSculptureStage.tsx <-- 400vh Three.js stage, 4-corner HUD, 3 scroll beats, SVG wireframes
 │   │       ├── a2ui/
 │   │       │   └── A2UIMobileRuntime.tsx <-- Real @a2ui/react v0.9 mobile phone & 5 test chips
 │   │       └── scroll/
-│   │           ├── HeroAct.tsx        <-- Act 1: Layered White Editorial Hero
-│   │           ├── InterceptAct.tsx   <-- Act 2: Deterministic Edge Intercept & Morph
+│   │           ├── HeroAct.tsx        <-- Act 1: Layered White Editorial Hero (archived/fallback)
+│   │           ├── InterceptAct.tsx   <-- Act 2: Deterministic Edge Intercept & Morph (archived/fallback)
 │   │           ├── WorkspaceAct.tsx   <-- Act 3: The Engineered Peak (Mobile + Companion HUD)
 │   │           └── AccessAct.tsx      <-- Act 4: Pricing, B2B codes, and 20% Youth Literacy
 └── scrollcraft/
@@ -149,6 +153,17 @@ nyra-2.0/
   }
   ```
 * **Bidirectional Updates at $0.00:** Button clicks (`mark_bill_paid`, `add_rent_as_bill`, `confirm_scam_blocked`) call `POST /api/a2ui/action`. The backend updates SQLite and returns `updateDataModel` messages that mutate the UI card in-place without touching an LLM.
+
+### 4. 3D Procedural Modular $ Sculpture & 60 FPS Direct Ref Mutations
+* **Architecture:** Implemented with pure Three.js without Fiber/Drei overhead in `frontend/src/components/hero3d/DollarSculptureStage.tsx`.
+* **Geometry:** 25 frosted ceramic rounded blocks (`MeshPhysicalMaterial` with transmission, roughness 0.22, metalness 0.05, clearcoat 0.6) mapped in `dollarBlocks.ts` into 6 vertical spine blocks, 15 S-curve blocks, and 4 detached hero blocks (`BILL_GUARD`, `SCAM_SHIELD`, `PII_ZERO`, `20%_IMPACT`).
+* **Zero setState inside RAF:** All camera choreography, block explosions, and 2D SVG callout leader lines (`<polyline>`, `<circle>`, `<g>`) update directly via DOM `useRef` transforms. This ensures stable 60 FPS on mobile and desktop without React render thrashing.
+* **Scroll Storytelling Timeline (400vh Track):**
+  * **0.0 - 0.20 (Assembled Hero):** 4-corner Igloo HUD, subtle mouse parallax, pulsing central point light.
+  * **0.20 - 0.45 (Beat 1: Bill Guard):** Camera zooms in; bill block pulls forward with SVG leader line to live callout card.
+  * **0.45 - 0.70 (Beat 2: Scam Shield):** Sculpture rotates 45°; scam shield block detonates forward with amber alert pulse.
+  * **0.70 - 0.90 (Beat 3: Unit Economics):** Blocks snap back; PII & 20% impact callouts highlight Haiku 5.5 cost (< $0.02/mo) and youth fund.
+  * **0.90 - 1.0 (Beat 4: Workspace Hand-off):** Sculpture fades and slides down into `#live-workspace`; workspace navbar slides in smoothly.
 
 ---
 
