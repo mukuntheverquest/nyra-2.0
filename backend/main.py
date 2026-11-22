@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 from typing import Dict, Any, Optional
 from contextlib import asynccontextmanager
 
@@ -19,7 +20,13 @@ from backend.db.database import (
     get_messages,
     add_message,
     add_telemetry,
+    get_outreach_leads,
+    get_outreach_emails,
+    get_outreach_email_by_id,
+    update_outreach_email_status,
+    get_outreach_summary,
 )
+from backend.agent.email_sender import dispatch_approved_email
 from backend.db.seed_demo import seed_demo_data
 from backend.middleware.pii_scrubber import scrub_pii
 from backend.middleware.quota_guard import (
@@ -118,6 +125,9 @@ def get_full_state(user_id: int = 1):
         "telemetry_logs": telemetry_logs,
         "scam_logs": scam_logs,
         "messages": messages,
+        "outreach_leads": get_outreach_leads("all", limit=20),
+        "outreach_emails": get_outreach_emails(limit=20),
+        "outreach_summary": get_outreach_summary(),
     }
 
 
@@ -321,6 +331,48 @@ def process_a2ui_action(req: A2UIActionRequest):
         )
         action_note = "Dispatched CAFC anti-fraud steps"
 
+    elif action == "approve_send_outreach_email":
+        email_id = int(ctx.get("email_id", 0))
+        email_record = get_outreach_email_by_id(email_id) if email_id else None
+        if not email_record:
+            all_emails = get_outreach_emails(limit=20)
+            drafts = [e for e in all_emails if e.get("status") == "drafted"]
+            if drafts:
+                email_record = drafts[-1]
+                email_id = email_record["id"]
+        if email_record:
+            rec_email = email_record["recipient_email"]
+            subj = email_record["subject"]
+            body = email_record["body_text"]
+            disp_res = dispatch_approved_email(rec_email, subj, body)
+            deliv_mode = disp_res.get("delivery_mode", "sandbox_outbox")
+            now_iso = datetime.now().isoformat()
+            update_outreach_email_status(
+                email_id=email_id,
+                status="approved_sent",
+                delivery_mode=deliv_mode,
+                sent_at=now_iso,
+            )
+            updated_data_model["email"] = updated_data_model.get("email", {})
+            updated_data_model["email"]["statusLabel"] = "Sent ✓ (Logged in Outbox · $0.00 AI)"
+            updated_data_model["email"]["approved"] = True
+            updated_data_model["email"]["sent"] = True
+            action_note = f"Approved & sent outreach email #{email_id} to {rec_email} via {deliv_mode}"
+        else:
+            action_note = f"Email #{email_id} not found"
+
+    elif action == "discard_outreach_email":
+        email_id = int(ctx.get("email_id", 0))
+        update_outreach_email_status(
+            email_id=email_id,
+            status="discarded",
+            delivery_mode="none",
+        )
+        updated_data_model["email"] = updated_data_model.get("email", {})
+        updated_data_model["email"]["statusLabel"] = "Draft Discarded"
+        updated_data_model["email"]["discarded"] = True
+        action_note = f"Discarded outreach email draft #{email_id}"
+
     else:
         updated_data_model["handled"] = True
         action_note = f"Executed generic action: {action}"
@@ -328,9 +380,10 @@ def process_a2ui_action(req: A2UIActionRequest):
     latency_ms = int((time.time() - start_time) * 1000)
 
     # Log $0.00 telemetry turn
+    skill_name = "a2ui_outreach_send" if action == "approve_send_outreach_email" else "a2ui_direct_action"
     add_telemetry(
         user_id=user_id,
-        skill_used="a2ui_direct_action",
+        skill_used=skill_name,
         model_used="deterministic-action",
         input_tokens=0,
         cache_write_tokens=0,

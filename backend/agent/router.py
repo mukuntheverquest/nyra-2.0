@@ -27,6 +27,8 @@ from backend.agent.tools import (
     execute_analyze_scam,
     execute_ontario_paycheque,
     execute_search_curriculum,
+    execute_find_youth_outreach_leads,
+    execute_draft_outreach_email,
 )
 from backend.agent.mock_engine import run_mock_turn
 from backend.a2ui.compiler import (
@@ -35,6 +37,7 @@ from backend.a2ui.compiler import (
     compile_paycheque_surface,
     compile_coach_surface,
     compile_text_surface,
+    compile_outreach_draft_surface,
 )
 
 SYSTEM_PROMPT_PATH = Path(__file__).resolve().parent / "system_prompt.md"
@@ -88,6 +91,20 @@ def dispatch_tool(user_id: int, tool_name: str, tool_args: Dict[str, Any]) -> Di
     elif tool_name == "search_ffe_curriculum":
         return execute_search_curriculum(
             query=tool_args.get("query", ""),
+        )
+    elif tool_name == "find_youth_outreach_leads":
+        return execute_find_youth_outreach_leads(
+            segment=tool_args.get("segment", "all"),
+            limit=int(tool_args.get("limit", 5)),
+        )
+    elif tool_name == "draft_outreach_email":
+        return execute_draft_outreach_email(
+            recipient_name=tool_args.get("recipient_name", ""),
+            recipient_email=tool_args.get("recipient_email", ""),
+            segment=tool_args.get("segment", "youth_waitlist"),
+            subject=tool_args.get("subject", ""),
+            body_text=tool_args.get("body_text", ""),
+            lead_id=tool_args.get("lead_id"),
         )
     else:
         return {"error": f"Unknown tool: {tool_name}"}
@@ -191,6 +208,8 @@ def execute_agent_turn(
                 skill_used = "bill_guard"
             elif t_name == "analyze_scam_message":
                 skill_used = "scam_shield"
+            elif t_name in ["find_youth_outreach_leads", "draft_outreach_email"]:
+                skill_used = "outreach_agent"
             else:
                 skill_used = "money_coach"
 
@@ -232,6 +251,8 @@ def execute_agent_turn(
             a2ui_messages = compile_paycheque_surface(user_id, t_out)
         elif t_name == "search_ffe_curriculum":
             a2ui_messages = compile_coach_surface(user_id, user_message, t_out)
+        elif t_name == "draft_outreach_email":
+            a2ui_messages = compile_outreach_draft_surface(user_id, t_out)
         else:
             a2ui_messages = compile_text_surface(user_id, final_reply)
     else:

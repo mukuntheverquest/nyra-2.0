@@ -21,19 +21,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Lockup: Static & Crisp */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#2177D1] flex items-center justify-center shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-[#2563EB] flex items-center justify-center shadow-xs">
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-sans text-base font-extrabold tracking-tight text-slate-900">
-                Nyra 2.0
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                A2UI v0.9
-              </span>
-            </div>
-            <span className="text-[11px] text-slate-500 font-mono block leading-none">
+            <span className="font-sans text-base font-extrabold tracking-tight text-slate-900 block leading-tight">
+              Nyra 2.0
+            </span>
+            <span className="text-[11px] text-slate-500 font-mono block leading-none mt-0.5">
               Financial Futures Education
             </span>
           </div>
@@ -42,23 +37,23 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Navigation Waypoints */}
         <nav className="hidden md:flex items-center gap-6 text-xs font-mono">
           <button
-            onClick={() => onScrollToAct("act-intercept")}
-            className="text-slate-600 hover:text-slate-900 transition cursor-pointer font-medium"
-          >
-            Guardrails
-          </button>
-          <button
-            onClick={() => onScrollToAct("act-workspace")}
+            onClick={() => onScrollToAct("live-workspace")}
             className="text-slate-600 hover:text-slate-900 transition cursor-pointer font-medium flex items-center gap-1.5"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live App & HUD
+            Live App Simulator
           </button>
           <button
-            onClick={() => onScrollToAct("act-access")}
+            onClick={() => onScrollToAct("live-dashboard")}
             className="text-slate-600 hover:text-slate-900 transition cursor-pointer font-medium"
           >
-            Access & 20% Pool
+            Telemetry &amp; Outreach
+          </button>
+          <button
+            onClick={() => onScrollToAct("access-impact")}
+            className="text-slate-600 hover:text-slate-900 transition cursor-pointer font-medium"
+          >
+            Access &amp; 20% Pool
           </button>
         </nav>
 
@@ -88,8 +83,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Primary Action Button */}
           <button
-            onClick={() => onScrollToAct("act-workspace")}
-            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#2177D1] hover:bg-[#3A8EE0] text-white text-xs font-semibold font-mono transition cursor-pointer shadow-xs"
+            onClick={() => onScrollToAct("live-workspace")}
+            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold font-mono transition cursor-pointer shadow-xs"
           >
             <span>Try Live Simulator</span>
             <ArrowUpRight className="w-3.5 h-3.5" />

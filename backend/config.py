@@ -52,3 +52,13 @@ TAX_2026 = {
     "ei_mie": 68900.00,
     "ei_max": 1123.07,
 }
+
+# 4th Agent: Owner Youth Outreach & Safe Dispatcher
+OUTREACH_MODE = os.getenv("OUTREACH_MODE", "sandbox")  # "sandbox" | "live"
+OUTREACH_ALLOWLIST = [e.strip().lower() for e in os.getenv("OUTREACH_ALLOWLIST", "").split(",") if e.strip()]
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASS = os.getenv("SMTP_PASS", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "outreach@nyra-app.ca")
+

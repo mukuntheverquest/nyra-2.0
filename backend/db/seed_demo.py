@@ -37,6 +37,8 @@ def seed_demo_data(db_path: Optional[str] = None) -> None:
 
     with conn:
         # Clear existing data for clean idempotent reseeding
+        conn.execute("DELETE FROM outreach_emails")
+        conn.execute("DELETE FROM outreach_leads")
         conn.execute("DELETE FROM messages")
         conn.execute("DELETE FROM usage_telemetry")
         conn.execute("DELETE FROM scam_logs")
@@ -112,6 +114,69 @@ def seed_demo_data(db_path: Optional[str] = None) -> None:
             )
             """
         )
+
+        # 5. Seed 5 Safe Demo Outreach Leads
+        leads = [
+            (
+                "Jordan Patel",
+                "jordan.patel@student-demo.ca",
+                "McMaster First-Year Waitlist",
+                "youth_waitlist",
+                "express_opt_in",
+                1,
+                "Signed up at campus orientation booth for bill & scam alerts",
+                "new",
+            ),
+            (
+                "Priya Nair",
+                "residence.life@mcmaster-demo.ca",
+                "McMaster Residence Life",
+                "residence_life",
+                "implied_b2b_inquiry",
+                500,
+                "Interested in bulk student wellness tools for first-year move-in",
+                "new",
+            ),
+            (
+                "Devon Brooks",
+                "wellness@msu-demo.ca",
+                "McMaster Students Union",
+                "campus_union",
+                "implied_b2b_inquiry",
+                1200,
+                "Exploring $10/seat/yr financial safety perks for undergrads",
+                "new",
+            ),
+            (
+                "Chloe Tremblay",
+                "chloe.t@youth-demo.ca",
+                "FFE Mississauga Workshop Alumni",
+                "workshop_alumni",
+                "express_opt_in",
+                1,
+                "Completed FFE independent living workshop; opted in for Nyra beta",
+                "new",
+            ),
+            (
+                "Marcus Chen",
+                "student.success@mohawk-demo.ca",
+                "Mohawk College Student Life",
+                "campus_union",
+                "implied_b2b_inquiry",
+                400,
+                "Requested info on scam protection & paycheque literacy for co-op students",
+                "new",
+            ),
+        ]
+        for lead in leads:
+            conn.execute(
+                """
+                INSERT INTO outreach_leads (
+                    name, email, organization, segment, casl_consent_type, youth_reach_est, notes, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                lead,
+            )
 
     conn.close()
     print("Demo data seeded successfully for Alex Rivera (user_id=1).")

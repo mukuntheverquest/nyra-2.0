@@ -4,11 +4,21 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.db.database import get_user, update_user, get_bills, get_trial_alerts, get_latest_telemetry
+from backend.db.database import (
+    get_user,
+    update_user,
+    get_bills,
+    get_trial_alerts,
+    get_latest_telemetry,
+    get_outreach_leads,
+    get_outreach_emails,
+    get_outreach_email_by_id,
+)
 from backend.db.seed_demo import seed_demo_data, calculate_next_due_date
 from backend.agent.tools import roll_date_one_month
 from backend.agent.scam_rules import evaluate_scam_message
 from backend.agent.ontario_calc import calculate_ontario_paycheque_and_rent
+from backend.agent.email_sender import dispatch_approved_email
 from backend.middleware.pii_scrubber import scrub_pii
 from backend.middleware.quota_guard import check_monthly_quota, check_casl_or_system_command
 from backend.scheduler.reminder_cron import run_daily_reminder_digest
@@ -368,3 +378,110 @@ def test_a2ui_v09_pii_block_emits_security_surface_without_llm_call():
     card = next((c for c in comps if c["id"] == "root"), None)
     assert card is not None
     assert card["component"] == "Card"
+
+
+def test_outreach_agent_drafts_casl_compliant_email_without_auto_sending():
+    """15. 4th Agent drafts CASL-compliant email without auto-sending (draft status, CASL footer, sent_at is None)."""
+    seed_demo_data()
+    resp = client.post(
+        "/api/chat",
+        json={
+            "message": "Find our top prospective youth campus lead and draft a personalized CASL-compliant outreach email introducing Nyra 2.0's bill guard and scam shield.",
+            "user_id": 1,
+            "mode": "mock",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["skill_used"] == "outreach_agent"
+
+    # Verify drafted emails in database
+    drafts = get_outreach_emails(limit=5)
+    assert len(drafts) >= 1
+    d = drafts[0]
+    assert d["status"] == "draft"
+    assert d["sent_at"] is None
+    assert d["casl_verified"] == 1
+    assert "Sent by Financial Futures Education (FFE)" in d["body_text"]
+    assert "Opt out anytime" in d["body_text"]
+
+    # Verify A2UI Surface 7 generated with approve button
+    envelopes = data.get("a2ui_messages", [])
+    assert len(envelopes) >= 2
+    update_env = next((e for e in envelopes if "updateComponents" in e), None)
+    assert update_env is not None
+    comps = update_env["updateComponents"]["components"]
+    btn = next((c for c in comps if c["id"] == "approve_btn"), None)
+    assert btn is not None
+    assert btn["action"]["event"]["name"] == "approve_send_outreach_email"
+
+
+def test_a2ui_v09_approve_send_outreach_email_dispatches_at_zero_llm_cost():
+    """16. Owner 1-tap Approve & Send marks email approved_sent, updates lead to sent, and logs $0.00 LLM cost."""
+    seed_demo_data()
+    # First, generate a draft
+    chat_resp = client.post(
+        "/api/chat",
+        json={
+            "message": "Draft an outreach email to Priya Nair at McMaster Residence Life",
+            "user_id": 1,
+            "mode": "mock",
+        },
+    )
+    assert chat_resp.status_code == 200
+    drafts = get_outreach_emails(limit=1)
+    assert len(drafts) == 1
+    email_id = drafts[0]["id"]
+    lead_id = drafts[0]["lead_id"]
+
+    # Action: Approve & Send
+    action_resp = client.post(
+        "/api/a2ui/action",
+        json={
+            "surfaceId": "surf_outreach_test",
+            "actionName": "approve_send_outreach_email",
+            "context": {"email_id": email_id},
+            "dataModel": {"email": {"email_id": email_id}},
+            "user_id": 1,
+        },
+    )
+    assert action_resp.status_code == 200
+    res_data = action_resp.json()
+    assert res_data["status"] == "success"
+
+    # Verify email status updated to approved_sent and sent_at recorded
+    email = get_outreach_email_by_id(email_id)
+    assert email["status"] == "approved_sent"
+    assert email["sent_at"] is not None
+
+    # Verify lead status updated to sent
+    leads = get_outreach_leads(limit=10)
+    matching_lead = next((l for l in leads if l["id"] == lead_id), None)
+    assert matching_lead is not None
+    assert matching_lead["status"] == "sent"
+
+    # Verify $0.00 cost telemetry
+    telemetry = get_latest_telemetry(1)
+    assert telemetry["skill_used"] == "a2ui_outreach_send"
+    assert telemetry["est_cost_usd"] == 0.0
+    assert telemetry["est_cost_cad"] == 0.0
+
+    # Verify updateDataModel message envelope
+    envelopes = res_data.get("a2ui_messages", [])
+    update_model = next((e for e in envelopes if "updateDataModel" in e), None)
+    assert update_model is not None
+    val = update_model["updateDataModel"]["value"]
+    assert "Sent ✓" in val["email"]["statusLabel"]
+
+
+def test_outreach_sandbox_prevents_unapproved_external_smtp_send():
+    """17. Default sandbox_outbox mode makes zero external SMTP calls."""
+    res = dispatch_approved_email(
+        recipient_email="student@mcmaster.ca",
+        subject="Test Safe Outreach",
+        body_text="Hello, this is a test.",
+    )
+    assert res["delivered"] is True
+    assert res["delivery_mode"] == "sandbox_outbox"
+    assert "Sandbox Mode" in res["note"]
+

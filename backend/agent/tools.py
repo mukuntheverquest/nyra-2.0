@@ -12,10 +12,14 @@ from backend.db.database import (
     get_trial_alerts,
     add_trial_alert as db_add_trial_alert,
     add_scam_log,
+    get_outreach_leads,
+    get_outreach_lead_by_id,
+    create_outreach_email_draft,
 )
 from backend.agent.scam_rules import evaluate_scam_message
 from backend.agent.ontario_calc import calculate_ontario_paycheque_and_rent
 from backend.rag.retriever import search_curriculum
+from backend.agent.outreach_guard import validate_and_format_outreach_email
 
 
 def calculate_next_due_date(due_day: int, base_date: Optional[date] = None) -> str:
@@ -238,6 +242,69 @@ def execute_search_curriculum(query: str) -> Dict[str, Any]:
     return {"query": query, "results": chunks}
 
 
+def execute_find_youth_outreach_leads(segment: str = "all", limit: int = 5) -> Dict[str, Any]:
+    leads = get_outreach_leads(segment=segment, limit=limit)
+    return {
+        "segment": segment,
+        "count": len(leads),
+        "leads": leads,
+    }
+
+
+def execute_draft_outreach_email(
+    recipient_name: str,
+    recipient_email: str,
+    segment: str,
+    subject: str,
+    body_text: str,
+    lead_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    consent_type = "express_opt_in"
+    youth_reach = 1
+    org = "Direct Outreach"
+    if lead_id:
+        lead = get_outreach_lead_by_id(lead_id)
+        if lead:
+            consent_type = lead.get("casl_consent_type", "express_opt_in")
+            youth_reach = lead.get("youth_reach_est", 1)
+            org = lead.get("organization", org)
+
+    val = validate_and_format_outreach_email(
+        recipient_email=recipient_email,
+        subject=subject,
+        body_text=body_text,
+        casl_consent_type=consent_type,
+    )
+
+    email_id = create_outreach_email_draft(
+        recipient_name=recipient_name,
+        recipient_email=recipient_email,
+        segment=segment,
+        subject=val["clean_subject"],
+        body_text=val["clean_body"],
+        casl_verified=1 if val["casl_verified"] else 0,
+        lead_id=lead_id,
+        delivery_mode="sandbox_outbox",
+    )
+
+    return {
+        "email_id": email_id,
+        "lead_id": lead_id,
+        "recipient_name": recipient_name,
+        "recipient_email": recipient_email,
+        "organization": org,
+        "segment": segment,
+        "subject": val["clean_subject"],
+        "body_preview": val["clean_body"][:250],
+        "full_body": val["clean_body"],
+        "casl_verified": val["casl_verified"],
+        "status": "draft",
+        "youth_reach_est": youth_reach,
+        "delivery_mode": "sandbox_outbox",
+        "checks_passed": val["checks_passed"],
+    }
+
+
 # Anthropic Tool JSON Schemas
 TOOL_SCHEMAS = [
     {
@@ -328,6 +395,38 @@ TOOL_SCHEMAS = [
                 "query": {"type": "string", "description": "Search term or concept (e.g., 'credit score', 'TFSA', 'emergency fund', 'NSF fees')"},
             },
             "required": ["query"],
+        },
+    },
+    {
+        "name": "find_youth_outreach_leads",
+        "description": "Find prospective Canadian student, campus partner, or youth waitlist leads for educational outreach.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "segment": {
+                    "type": "string",
+                    "enum": ["all", "youth_waitlist", "campus_union", "residence_life", "workshop_alumni"],
+                    "default": "all",
+                    "description": "Target segment of prospective youth or campus partners",
+                },
+                "limit": {"type": "integer", "default": 5, "description": "Maximum number of leads to return"},
+            },
+        },
+    },
+    {
+        "name": "draft_outreach_email",
+        "description": "Draft a CASL-compliant outreach email to a youth, campus partner, or student leader for owner 1-tap review.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "lead_id": {"type": ["integer", "null"], "description": "Optional lead ID from outreach_leads"},
+                "recipient_name": {"type": "string", "description": "Full name of the recipient"},
+                "recipient_email": {"type": "string", "description": "Email address of the recipient"},
+                "segment": {"type": "string", "description": "Audience segment (e.g., campus_union, residence_life, youth_waitlist)"},
+                "subject": {"type": "string", "description": "Concise, non-spammy subject line (<= 90 characters)"},
+                "body_text": {"type": "string", "description": "Warm, student-friendly email body text (CASL footer appended automatically)"},
+            },
+            "required": ["recipient_name", "recipient_email", "segment", "subject", "body_text"],
         },
         # Ephemeral prompt caching on the last tool schema to cache entire toolset
         "cache_control": {"type": "ephemeral"},

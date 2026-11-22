@@ -79,3 +79,31 @@ CREATE TABLE IF NOT EXISTS messages (
     skill_tag TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS outreach_leads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    organization TEXT NOT NULL,
+    segment TEXT NOT NULL,                   -- 'youth_waitlist' | 'campus_union' | 'residence_life' | 'workshop_alumni'
+    casl_consent_type TEXT NOT NULL,         -- 'express_opt_in' | 'implied_b2b_inquiry'
+    youth_reach_est INTEGER NOT NULL DEFAULT 1, -- 1 for individual youth, 100-1200+ for campus partners
+    notes TEXT,
+    status TEXT NOT NULL DEFAULT 'new',      -- 'new' | 'drafted' | 'sent' | 'replied'
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS outreach_emails (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER REFERENCES outreach_leads(id),
+    recipient_name TEXT NOT NULL,
+    recipient_email TEXT NOT NULL,
+    segment TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    body_text TEXT NOT NULL,
+    casl_verified INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL DEFAULT 'draft',    -- 'draft' | 'approved_sent' | 'discarded'
+    delivery_mode TEXT NOT NULL DEFAULT 'sandbox_outbox', -- 'sandbox_outbox' | 'smtp_live'
+    sent_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

@@ -55,10 +55,10 @@ export const DOLLAR_BLOCKS: SculptureBlockSpec[] = [
     role: 'detached', layer: 1, explodeOffset: [1.5, 0.9, 0.9],
     callout: {
       code: '01',
-      title: 'BILL_GUARD',
-      sub: 'AUTO-ROLL · 48H TRIAL KILL-SWITCH',
-      labelDx: 95,
-      labelDy: -38,
+      title: 'BILL GUARD',
+      sub: 'Auto-roll dates · 48h trial kill-switch',
+      labelDx: 110,
+      labelDy: -40,
     },
   },
   {
@@ -67,10 +67,10 @@ export const DOLLAR_BLOCKS: SculptureBlockSpec[] = [
     role: 'detached', layer: 2, explodeOffset: [-1.6, 0.3, 0.8],
     callout: {
       code: '02',
-      title: 'SCAM_SHIELD',
-      sub: 'MITRE F3 · INTERAC / OSAP INTERCEPT',
-      labelDx: -115,
-      labelDy: -28,
+      title: 'SCAM SHIELD',
+      sub: 'MITRE F3 · Interac & OSAP intercept',
+      labelDx: -130,
+      labelDy: -30,
     },
   },
   {
@@ -79,10 +79,10 @@ export const DOLLAR_BLOCKS: SculptureBlockSpec[] = [
     role: 'detached', layer: 2, explodeOffset: [1.6, -0.3, 0.8],
     callout: {
       code: '03',
-      title: 'PII_ZERO',
-      sub: '0 BANK LOGINS · PIPEDA SCRUBBER',
-      labelDx: 95,
-      labelDy: 24,
+      title: 'PII ZERO',
+      sub: 'Zero bank logins · PIPEDA scrubber',
+      labelDx: 110,
+      labelDy: 28,
     },
   },
   {
@@ -91,10 +91,10 @@ export const DOLLAR_BLOCKS: SculptureBlockSpec[] = [
     role: 'detached', layer: 3, explodeOffset: [-1.4, -0.9, 0.7],
     callout: {
       code: '04',
-      title: '20%_IMPACT',
-      sub: 'FFE YOUTH LITERACY WORKSHOPS',
-      labelDx: -110,
-      labelDy: 34,
+      title: '20% IMPACT',
+      sub: 'Funds FFE youth literacy workshops',
+      labelDx: -125,
+      labelDy: 36,
     },
   },
 ];

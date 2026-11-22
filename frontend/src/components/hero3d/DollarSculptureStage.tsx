@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { DOLLAR_BLOCKS, BLOCK_STEP, SculptureBlockSpec } from "./dollarBlocks";
-import { ArrowDown, ArrowUpRight, Shield } from "lucide-react";
+import { ArrowDown, Shield } from "lucide-react";
 
 interface DollarSculptureStageProps {
   onJumpToApp: () => void;
@@ -21,14 +21,16 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
   const sectionRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // SVG callout element refs
+  // SVG connector lines & dot refs
   const calloutGroupRef = useRef<SVGSVGElement>(null);
   const anchorDotRefs = useRef<{ [id: string]: SVGCircleElement | null }>({});
   const outerRingRefs = useRef<{ [id: string]: SVGCircleElement | null }>({});
   const polylineRefs = useRef<{ [id: string]: SVGPolylineElement | null }>({});
-  const labelGroupRefs = useRef<{ [id: string]: SVGGElement | null }>({});
 
-  // Storytelling beat DOM refs (for 60fps zero-react-render opacity/transform updates)
+  // Floating HTML Pop-up Card DOM refs (60fps DOM transforms)
+  const cardRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
+
+  // Storytelling beat DOM refs
   const beat1Ref = useRef<HTMLDivElement>(null);
   const beat2Ref = useRef<HTMLDivElement>(null);
   const beat3Ref = useRef<HTMLDivElement>(null);
@@ -53,12 +55,12 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
 
     // 1. Scene, Camera, Renderer
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog("#F8FAFC", 11, 24);
+    scene.fog = new THREE.FogExp2("#EEF4FB", 0.036);
 
     let width = canvas.clientWidth || window.innerWidth;
     let height = canvas.clientHeight || window.innerHeight;
 
-    const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 50);
+    const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 60);
     camera.position.set(0, 0, 11);
 
     const renderer = new THREE.WebGLRenderer({
@@ -72,45 +74,136 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.08;
 
-    // 2. Studio 3-Point Lighting Rig
-    const hemiLight = new THREE.HemisphereLight("#FFFFFF", "#CBD5E1", 1.35);
+    // 2. Studio Lighting Rig
+    const hemiLight = new THREE.HemisphereLight("#FFFFFF", "#CBD5E1", 1.4);
     scene.add(hemiLight);
 
-    const keyLight = new THREE.DirectionalLight("#FFFFFF", 2.1);
+    const keyLight = new THREE.DirectionalLight("#FFFFFF", 2.2);
     keyLight.position.set(-6, 8, 9);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight("#3B82F6", 2.4);
+    const rimLight = new THREE.DirectionalLight("#3B82F6", 2.6);
     rimLight.position.set(7, 3, -5);
     scene.add(rimLight);
 
-    const fillLight = new THREE.DirectionalLight("#E0ECFF", 0.9);
+    const fillLight = new THREE.DirectionalLight("#E0ECFF", 0.95);
     fillLight.position.set(5, -6, 6);
     scene.add(fillLight);
 
-    // Glowing center PointLight (Nyra Blue spill onto inner ceramic faces)
-    const centerPointLight = new THREE.PointLight("#3B82F6", 4.5, 6.0);
+    // Glowing center PointLight (Nyra Blue spill onto inner ceramic block bevels)
+    const centerPointLight = new THREE.PointLight("#3B82F6", 6.0, 8.0);
     centerPointLight.position.set(0, 0, 0.2);
     scene.add(centerPointLight);
 
-    // 3. Ground Architectural Grid & Soft Contact Shadow
-    const grid = new THREE.GridHelper(24, 28, "#CBD5E1", "#E2E8F0");
-    grid.position.y = -3.45;
-    if (grid.material instanceof THREE.Material) {
-      grid.material.transparent = true;
-      grid.material.opacity = 0.28;
+    // 3. Procedural 3D Snowy Alpine Mountains Background
+    // Layer 1: Foreground Snowy Ridge
+    const geo1 = new THREE.PlaneGeometry(34, 16, 64, 32);
+    geo1.rotateX(-Math.PI / 2);
+    const pos1 = geo1.attributes.position;
+    for (let i = 0; i < pos1.count; i++) {
+      const px = pos1.getX(i);
+      const pz = pos1.getZ(i);
+      const distFromCenter = Math.abs(px);
+      const ridgeY =
+        Math.sin(px * 0.25) * 0.4 +
+        (distFromCenter > 5 ? (distFromCenter - 5) * 0.35 : 0) -
+        pz * 0.12;
+      pos1.setY(i, ridgeY);
     }
-    grid.rotation.x = 0.05;
-    scene.add(grid);
+    geo1.computeVertexNormals();
+    const mountainLayer1 = new THREE.Mesh(
+      geo1,
+      new THREE.MeshStandardMaterial({
+        color: "#F8FAFC",
+        roughness: 0.88,
+        metalness: 0.02,
+        flatShading: true,
+      })
+    );
+    mountainLayer1.position.set(0, -3.35, -1.5);
+    scene.add(mountainLayer1);
 
-    // Shadow Disc
+    // Layer 2: Midground Alpine Peaks
+    const geo2 = new THREE.PlaneGeometry(56, 18, 80, 28);
+    geo2.rotateX(-Math.PI / 2);
+    const pos2 = geo2.attributes.position;
+    const ridge = (x: number, z: number) => {
+      const sideValley = Math.min(1, Math.abs(x) / 7.5);
+      const n1 = Math.abs(Math.sin(x * 0.22 + 0.7) * Math.cos(z * 0.18)) * 5.8;
+      const n2 = Math.abs(Math.sin(x * 0.51 - z * 0.33)) * 2.4;
+      const n3 = Math.sin(x * 1.15 + z * 0.9) * 0.55;
+      return (n1 + n2 + n3) * (0.35 + 0.85 * sideValley);
+    };
+    for (let i = 0; i < pos2.count; i++) {
+      const px = pos2.getX(i);
+      const pz = pos2.getZ(i);
+      pos2.setY(i, ridge(px, pz));
+    }
+    geo2.computeVertexNormals();
+    const mountainLayer2 = new THREE.Mesh(
+      geo2,
+      new THREE.MeshStandardMaterial({
+        color: "#E6EEF8",
+        roughness: 0.82,
+        metalness: 0.02,
+        flatShading: true,
+      })
+    );
+    mountainLayer2.position.set(0, -3.6, -9.5);
+    scene.add(mountainLayer2);
+
+    // Layer 3: Distant Misty Summit Range
+    const geo3 = new THREE.PlaneGeometry(78, 14, 72, 20);
+    geo3.rotateX(-Math.PI / 2);
+    const pos3 = geo3.attributes.position;
+    for (let i = 0; i < pos3.count; i++) {
+      const px = pos3.getX(i);
+      const pz = pos3.getZ(i);
+      const n =
+        Math.abs(Math.sin(px * 0.14) * Math.cos(pz * 0.2)) * 8.5 +
+        Math.abs(Math.sin(px * 0.35)) * 3.0;
+      pos3.setY(i, n);
+    }
+    geo3.computeVertexNormals();
+    const mountainLayer3 = new THREE.Mesh(
+      geo3,
+      new THREE.MeshStandardMaterial({
+        color: "#DCE7F5",
+        roughness: 0.92,
+        metalness: 0.02,
+        flatShading: true,
+      })
+    );
+    mountainLayer3.position.set(0, -3.2, -18.5);
+    scene.add(mountainLayer3);
+
+    // Soft drifting snowflakes (90 flakes)
+    const snowCount = 90;
+    const snowGeo = new THREE.BufferGeometry();
+    const snowPositions = new Float32Array(snowCount * 3);
+    for (let i = 0; i < snowCount * 3; i += 3) {
+      snowPositions[i] = (Math.random() - 0.5) * 16;
+      snowPositions[i + 1] = Math.random() * 10 - 2;
+      snowPositions[i + 2] = (Math.random() - 0.5) * 12;
+    }
+    snowGeo.setAttribute("position", new THREE.BufferAttribute(snowPositions, 3));
+    const snowMat = new THREE.PointsMaterial({
+      size: 0.065,
+      color: "#93C5FD",
+      transparent: true,
+      opacity: 0.65,
+    });
+    const snowflakes = new THREE.Points(snowGeo, snowMat);
+    scene.add(snowflakes);
+
+    // Subtle radial shadow disc under sculpture
     const shadowCanvas = document.createElement("canvas");
     shadowCanvas.width = 128;
     shadowCanvas.height = 128;
     const sCtx = shadowCanvas.getContext("2d");
     if (sCtx) {
       const grad = sCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
-      grad.addColorStop(0, "rgba(15, 23, 42, 0.16)");
+      grad.addColorStop(0, "rgba(37, 99, 235, 0.18)");
       grad.addColorStop(0.5, "rgba(15, 23, 42, 0.05)");
       grad.addColorStop(1, "rgba(15, 23, 42, 0)");
       sCtx.fillStyle = grad;
@@ -121,34 +214,15 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
     const shadowMat = new THREE.MeshBasicMaterial({
       map: shadowTex,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.8,
       depthWrite: false,
     });
     const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
     shadowMesh.rotation.x = -Math.PI / 2;
-    shadowMesh.position.y = -3.44;
+    shadowMesh.position.y = -3.32;
     scene.add(shadowMesh);
 
-    // 4. Floating Micro-Particles
-    const particleCount = 45;
-    const particleGeo = new THREE.BufferGeometry();
-    const particlePositions = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      particlePositions[i] = (Math.random() - 0.5) * 12;
-      particlePositions[i + 1] = (Math.random() - 0.5) * 10;
-      particlePositions[i + 2] = (Math.random() - 0.5) * 8;
-    }
-    particleGeo.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
-    const particleMat = new THREE.PointsMaterial({
-      size: 0.045,
-      color: "#93C5FD",
-      transparent: true,
-      opacity: 0.45,
-    });
-    const particles = new THREE.Points(particleGeo, particleMat);
-    scene.add(particles);
-
-    // 5. Build Modular $ Sculpture Group
+    // 4. Build Modular $ Sculpture Group
     const sculptureGroup = new THREE.Group();
     scene.add(sculptureGroup);
 
@@ -157,43 +231,56 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
     const stemGeom = new RoundedBoxGeometry(0.52, 0.54, 0.46, 4, 0.06);
     const detachedGeom = new RoundedBoxGeometry(0.46, 0.46, 0.46, 4, 0.06);
 
-    // Frosted Ceramic Materials
-    const sMaterial = new THREE.MeshPhysicalMaterial({
-      color: "#E8EEF5",
-      roughness: 0.32,
-      metalness: 0.06,
-      clearcoat: 0.45,
-      clearcoatRoughness: 0.28,
+    // Materials per Phase 2.1:
+    // A. Stem & center bar: Rich satin Nyra Blue PBR
+    const nyraBlueBlockMat = new THREE.MeshPhysicalMaterial({
+      color: "#2563EB",
+      emissive: "#1D4ED8",
+      emissiveIntensity: 0.22,
+      roughness: 0.24,
+      metalness: 0.12,
+      clearcoat: 0.75,
+      clearcoatRoughness: 0.18,
     });
 
-    const stemMaterial = new THREE.MeshPhysicalMaterial({
-      color: "#DCE5F2",
-      roughness: 0.36,
+    // B. Outer s_curve blocks: Crisp frosted alpine-white
+    const sCurveWhiteMat = new THREE.MeshPhysicalMaterial({
+      color: "#F1F5F9",
+      roughness: 0.26,
+      metalness: 0.04,
+      clearcoat: 0.65,
+      clearcoatRoughness: 0.22,
+    });
+
+    // Glowing Nyra Blue bevel edges on white s_curve blocks
+    const sCurveEdgesGeom = new THREE.EdgesGeometry(sGeom);
+    const sCurveLineMat = new THREE.LineBasicMaterial({
+      color: "#3B82F6",
+      transparent: true,
+      opacity: 0.42,
+    });
+
+    // C. 4 Detached floating blocks: Bright crystalline Nyra Blue
+    const detachedBlueMat = new THREE.MeshPhysicalMaterial({
+      color: "#3B82F6",
+      emissive: "#2563EB",
+      emissiveIntensity: 0.35,
+      roughness: 0.22,
       metalness: 0.08,
-      clearcoat: 0.35,
+      clearcoat: 0.85,
     });
-
-    const detachedMaterial = new THREE.MeshPhysicalMaterial({
-      color: "#E8EEF5",
-      roughness: 0.32,
-      metalness: 0.06,
-      clearcoat: 0.45,
-      clearcoatRoughness: 0.28,
-    });
-
-    // Hairline wireframe edges for 4 detached blocks
     const detachedEdgesGeom = new THREE.EdgesGeometry(detachedGeom);
     const detachedLineMat = new THREE.LineBasicMaterial({
-      color: "#2563EB",
+      color: "#1D4ED8",
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.55,
     });
 
-    // Glowing Inner Core boxes inside key sculpture joints
+    // D. Recessed glowing core boxes
     const coreMat = new THREE.MeshStandardMaterial({
       color: "#2563EB",
-      emissive: "#3B82F6",
-      emissiveIntensity: 2.4,
+      emissive: "#2563EB",
+      emissiveIntensity: 2.8,
       roughness: 0.2,
     });
     const coreBoxGeom = new THREE.BoxGeometry(0.42, 0.42, 0.32);
@@ -210,7 +297,7 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
       sculptureGroup.add(coreMesh);
     });
 
-    // Instantiate the 25 blocks
+    // Instantiate 25 blocks
     interface BlockRuntime {
       spec: SculptureBlockSpec;
       mesh: THREE.Mesh;
@@ -222,14 +309,15 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
 
     DOLLAR_BLOCKS.forEach((spec) => {
       let geom: THREE.BufferGeometry = sGeom;
-      let mat: THREE.Material = sMaterial;
+      let mat: THREE.Material = sCurveWhiteMat;
+      const isCenterBar = spec.id === "s_m1" || spec.id === "s_m2" || spec.id === "s_m3";
 
-      if (spec.role === "stem") {
-        geom = stemGeom;
-        mat = stemMaterial;
+      if (spec.role === "stem" || isCenterBar) {
+        geom = spec.role === "stem" ? stemGeom : sGeom;
+        mat = nyraBlueBlockMat;
       } else if (spec.role === "detached") {
         geom = detachedGeom;
-        mat = detachedMaterial;
+        mat = detachedBlueMat;
       }
 
       const mesh = new THREE.Mesh(geom, mat);
@@ -240,9 +328,12 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
       );
       mesh.position.copy(basePos);
 
-      // Add wireframe lines if detached block
+      // Add wireframe edge lines
       if (spec.role === "detached") {
         const wire = new THREE.LineSegments(detachedEdgesGeom, detachedLineMat);
+        mesh.add(wire);
+      } else if (spec.role === "s_curve" && !isCenterBar) {
+        const wire = new THREE.LineSegments(sCurveEdgesGeom, sCurveLineMat);
         mesh.add(wire);
       }
 
@@ -256,290 +347,310 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
       });
     });
 
-    // 6. Passive Scroll and Mouse Listeners
-    const handleScroll = () => {
-      const rect = section.getBoundingClientRect();
-      const scrollable = section.offsetHeight - window.innerHeight;
-      const raw =
-        scrollable > 0 ? Math.min(Math.max(-rect.top / scrollable, 0), 1) : 0;
-      targetScrollRef.current = raw;
+    // 5. Scroll & Mouse Tracking
+    const onScroll = () => {
+      const scrollY = window.scrollY;
+      const stageTop = section.offsetTop;
+      const stageHeight = section.offsetHeight - window.innerHeight;
+      if (stageHeight <= 0) return;
+
+      const p = Math.max(0, Math.min(1, (scrollY - stageTop) / stageHeight));
+      targetScrollRef.current = p;
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const nx = (e.clientX / window.innerWidth) * 2 - 1;
-      const ny = -(e.clientY / window.innerHeight) * 2 + 1;
-      targetMouseRef.current = { x: nx, y: ny };
+    const onMouseMove = (e: MouseEvent) => {
+      targetMouseRef.current = {
+        x: (e.clientX / window.innerWidth) * 2 - 1,
+        y: -(e.clientY / window.innerHeight) * 2 + 1,
+      };
     };
 
-    const handleResize = () => {
-      if (!canvas) return;
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+    onScroll();
+
+    // Resize Handler
+    const onResize = () => {
       width = canvas.clientWidth || window.innerWidth;
       height = canvas.clientHeight || window.innerHeight;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height, false);
     };
+    window.addEventListener("resize", onResize);
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    window.addEventListener("resize", handleResize);
-    handleScroll();
-
-    // 7. 60FPS Render & Choreography Loop (ZERO setState)
+    // 6. Zero-setState 60FPS RAF Loop
     let animationFrameId: number;
-    const clock = new THREE.Clock();
-    const tempVec = new THREE.Vector3();
+    let clock = new THREE.Clock();
 
-    const detachedBlocks = blockRuntimes.filter((b) => b.spec.callout);
+    const worldPos = new THREE.Vector3();
+    const screenPos = new THREE.Vector3();
 
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
+    const renderLoop = () => {
+      animationFrameId = requestAnimationFrame(renderLoop);
 
-      // Smooth damping
-      currentScrollRef.current +=
-        (targetScrollRef.current - currentScrollRef.current) * 0.08;
-      currentMouseRef.current.x +=
-        (targetMouseRef.current.x - currentMouseRef.current.x) * 0.06;
-      currentMouseRef.current.y +=
-        (targetMouseRef.current.y - currentMouseRef.current.y) * 0.06;
-
-      const p = currentScrollRef.current;
-      const mx = currentMouseRef.current.x;
-      const my = currentMouseRef.current.y;
+      const delta = clock.getDelta();
       const elapsedTime = clock.getElapsedTime();
 
-      // Gentle sinusoidal hover (disabled if prefersReducedMotion)
-      const hover = prefersReducedMotion ? 0 : Math.sin(elapsedTime * 1.5) * 0.08;
-      particles.rotation.y = elapsedTime * 0.02;
+      // Smooth scroll lerp
+      currentScrollRef.current +=
+        (targetScrollRef.current - currentScrollRef.current) * 0.1;
+      const p = currentScrollRef.current;
 
-      // 4-Beat Scroll Transformations:
-      // Position X, Position Y, Rotation Y, Explosion Factor
-      let posX = 0;
-      let posY = 0.1 + hover;
-      let rotY = mx * 0.22;
-      let scale = 1.0;
-      let stageAlpha = 1.0;
+      // Smooth mouse lerp
+      currentMouseRef.current.x +=
+        (targetMouseRef.current.x - currentMouseRef.current.x) * 0.05;
+      currentMouseRef.current.y +=
+        (targetMouseRef.current.y - currentMouseRef.current.y) * 0.05;
+      const mx = currentMouseRef.current.x;
+      const my = currentMouseRef.current.y;
 
-      // Explode factors per layer (1: Bill, 2: Scam, 3: Impact)
-      let explodeL1 = 0;
-      let explodeL2 = 0;
-      let explodeL3 = 0;
+      // Mountain Parallax
+      mountainLayer3.position.x = mx * 0.15;
+      mountainLayer2.position.x = mx * 0.4;
+      mountainLayer1.position.x = mx * 0.75;
 
-      if (p <= 0.18) {
-        // Beat 0: Assembled center, pure calm hero
-        posX = 0;
-        posY = 0.1 + hover;
-        rotY = mx * 0.22;
-        explodeL1 = 0;
-        explodeL2 = 0;
-        explodeL3 = 0;
-      } else if (p <= 0.44) {
-        // Beat 1: Shift Left, Layer 1 opens, Beat 1 text on Right
-        const t = (p - 0.18) / (0.44 - 0.18);
-        const s = smoothstep(0, 1, t);
-        posX = THREE.MathUtils.lerp(0, -2.15, s);
-        posY = THREE.MathUtils.lerp(0.1 + hover, 0.0 + hover, s);
-        rotY = THREE.MathUtils.lerp(0, 0.38, s) + mx * 0.18;
-        explodeL1 = THREE.MathUtils.lerp(0, 0.6, s);
-        explodeL2 = THREE.MathUtils.lerp(0, 0.2, s);
-        explodeL3 = 0;
-      } else if (p <= 0.70) {
-        // Beat 2: Shift Right, Peak Explosion (all 3 layers open), Beat 2 text on Left
-        const t = (p - 0.44) / (0.70 - 0.44);
-        const s = smoothstep(0, 1, t);
-        posX = THREE.MathUtils.lerp(-2.15, 2.15, s);
-        posY = 0.0 + hover;
-        rotY = THREE.MathUtils.lerp(0.38, -0.42, s) + mx * 0.18;
-        explodeL1 = THREE.MathUtils.lerp(0.6, 1.0, s);
-        explodeL2 = THREE.MathUtils.lerp(0.2, 1.0, s);
-        explodeL3 = THREE.MathUtils.lerp(0, 0.85, s);
-      } else if (p <= 0.90) {
-        // Beat 3: Reassemble center, Beat 3 text Centered below
-        const t = (p - 0.70) / (0.90 - 0.70);
-        const s = smoothstep(0, 1, t);
-        posX = THREE.MathUtils.lerp(2.15, 0, s);
-        posY = THREE.MathUtils.lerp(0.0 + hover, 0.55 + hover, s);
-        rotY = THREE.MathUtils.lerp(-0.42, 0, s) + mx * 0.18;
-        explodeL1 = THREE.MathUtils.lerp(1.0, 0, s);
-        explodeL2 = THREE.MathUtils.lerp(1.0, 0, s);
-        explodeL3 = THREE.MathUtils.lerp(0.85, 0, s);
-      } else {
-        // Handoff to #live-workspace
-        const t = (p - 0.90) / (1.0 - 0.90);
-        const s = smoothstep(0, 1, t);
-        posX = 0;
-        posY = THREE.MathUtils.lerp(0.55 + hover, 0.85, s);
+      // Drifting snowflakes
+      const snowArr = snowGeo.attributes.position.array as Float32Array;
+      for (let i = 1; i < snowArr.length; i += 3) {
+        snowArr[i] -= 0.012;
+        if (snowArr[i] < -3.5) snowArr[i] = 7.5;
+      }
+      snowGeo.attributes.position.needsUpdate = true;
+
+      // Camera Choreography across the 400vh scroll track
+      let targetCamX = 0;
+      let targetCamY = 0;
+      let targetCamZ = 11;
+      let rotY = 0;
+      let rotX = 0;
+      let groupY = 0;
+
+      if (p <= 0.2) {
+        // Assembled hero: subtle breathing float + mouse parallax
+        const t = p / 0.2;
+        targetCamZ = 11 - t * 0.5;
         rotY = mx * 0.18;
-        scale = THREE.MathUtils.lerp(1.0, 0.82, s);
-        stageAlpha = THREE.MathUtils.lerp(1.0, 0.0, s);
-        explodeL1 = 0;
-        explodeL2 = 0;
-        explodeL3 = 0;
+        rotX = my * 0.12;
+        groupY = Math.sin(elapsedTime * 1.2) * 0.06;
+      } else if (p <= 0.45) {
+        // Beat 1: Bill & Trial Guard focus
+        const t = (p - 0.2) / 0.25;
+        const ease = smoothstep(0, 1, t);
+        targetCamX = -1.1 * ease;
+        targetCamY = 0.4 * ease;
+        targetCamZ = 10.5 - ease * 1.5;
+        rotY = 0.28 * ease + mx * 0.12;
+        rotX = -0.08 * ease + my * 0.08;
+      } else if (p <= 0.7) {
+        // Beat 2: Canadian Scam Shield focus
+        const t = (p - 0.45) / 0.25;
+        const ease = smoothstep(0, 1, t);
+        targetCamX = -1.1 + 2.3 * ease;
+        targetCamY = 0.4 - 0.2 * ease;
+        targetCamZ = 9.0 + ease * 0.8;
+        rotY = 0.28 - 0.65 * ease + mx * 0.12;
+        rotX = -0.08 + 0.14 * ease + my * 0.08;
+      } else if (p <= 0.9) {
+        // Beat 3: Unit Economics & Re-assembly
+        const t = (p - 0.7) / 0.2;
+        const ease = smoothstep(0, 1, t);
+        targetCamX = 1.2 * (1 - ease);
+        targetCamY = 0.2 * (1 - ease) + 0.3 * ease;
+        targetCamZ = 9.8 + ease * 0.8;
+        rotY = (-0.37 * (1 - ease)) + mx * 0.1;
+        rotX = 0.06 * (1 - ease) + my * 0.06;
+      } else {
+        // Beat 4: Workspace Hand-off
+        const t = (p - 0.9) / 0.1;
+        const ease = smoothstep(0, 1, t);
+        groupY = -3.5 * ease;
+        targetCamZ = 10.6 + ease * 1.8;
       }
 
-      sculptureGroup.position.set(posX, posY, 0);
-      sculptureGroup.rotation.y = rotY;
-      sculptureGroup.rotation.x = my * -0.12;
-      sculptureGroup.scale.setScalar(scale);
+      if (!prefersReducedMotion) {
+        camera.position.x = targetCamX;
+        camera.position.y = targetCamY;
+        camera.position.z = targetCamZ;
+        sculptureGroup.rotation.y = rotY;
+        sculptureGroup.rotation.x = rotX;
+        sculptureGroup.position.y = groupY;
+      }
 
-      // Apply dynamic block explosion positions
+      // Block Explosion / Detonation Logic
+      let explodeMult = 0;
+      if (p > 0.15 && p <= 0.45) {
+        explodeMult = smoothstep(0.15, 0.35, p) * 1.15;
+      } else if (p > 0.45 && p <= 0.75) {
+        explodeMult = 1.15 - smoothstep(0.45, 0.75, p) * 0.6;
+      } else if (p > 0.75 && p <= 0.92) {
+        explodeMult = 0.55 * (1 - smoothstep(0.75, 0.92, p));
+      } else {
+        explodeMult = 0;
+      }
+
       blockRuntimes.forEach(({ spec, mesh, basePos, explodeVec }) => {
-        let factor = 0;
-        if (spec.layer === 1) factor = explodeL1;
-        else if (spec.layer === 2) factor = explodeL2;
-        else factor = explodeL3;
+        let blockMult = explodeMult;
+        if (p >= 0.2 && p <= 0.45 && spec.id === "float_bill") {
+          blockMult = explodeMult * 1.35;
+        } else if (p > 0.45 && p <= 0.7 && spec.id === "float_scam") {
+          blockMult = explodeMult * 1.45;
+        }
 
-        mesh.position.copy(basePos).addScaledVector(explodeVec, factor);
+        mesh.position.set(
+          basePos.x + explodeVec.x * blockMult,
+          basePos.y + explodeVec.y * blockMult,
+          basePos.z + explodeVec.z * blockMult
+        );
       });
 
-      // Update 3D-to-2D Floating Wireframe Callouts directly via DOM
-      const calloutAlpha = width >= 768 ? smoothstep(0.20, 0.08, p) : 0;
-      if (calloutGroupRef.current) {
-        calloutGroupRef.current.style.opacity = `${calloutAlpha}`;
-      }
+      // Update Floating HTML Callout Cards & SVG Leader Lines
+      const halfW = width / 2;
+      const halfH = height / 2;
+      const showCallouts = p < 0.2; // Callouts pop in during assembled hero and fade out as scroll starts
 
-      if (calloutAlpha > 0.01) {
-        detachedBlocks.forEach(({ spec, mesh }) => {
-          if (!spec.callout) return;
-          mesh.getWorldPosition(tempVec);
-          tempVec.project(camera);
+      blockRuntimes.forEach(({ spec, mesh }) => {
+        if (!spec.callout) return;
 
-          const sx = (tempVec.x * 0.5 + 0.5) * width;
-          const sy = (-tempVec.y * 0.5 + 0.5) * height;
-          const { labelDx, labelDy } = spec.callout;
-          const ex = sx + labelDx * 0.55;
-          const ey = sy + labelDy;
-          const tx = sx + labelDx;
-          const ty = sy + labelDy;
+        mesh.getWorldPosition(worldPos);
+        screenPos.copy(worldPos).project(camera);
 
-          const dot = anchorDotRefs.current[spec.id];
-          const ring = outerRingRefs.current[spec.id];
-          const poly = polylineRefs.current[spec.id];
-          const label = labelGroupRefs.current[spec.id];
+        const sx = screenPos.x * halfW + halfW;
+        const sy = -screenPos.y * halfH + halfH;
+        const isBehind = screenPos.z > 1.0;
 
-          if (dot) {
-            dot.setAttribute("cx", sx.toFixed(1));
-            dot.setAttribute("cy", sy.toFixed(1));
+        const anchorDot = anchorDotRefs.current[spec.id];
+        const outerRing = outerRingRefs.current[spec.id];
+        const polyline = polylineRefs.current[spec.id];
+        const cardEl = cardRefs.current[spec.id];
+
+        const targetX = sx + spec.callout.labelDx;
+        const targetY = sy + spec.callout.labelDy;
+
+        if (showCallouts && !isBehind) {
+          if (anchorDot) {
+            anchorDot.setAttribute("cx", sx.toFixed(1));
+            anchorDot.setAttribute("cy", sy.toFixed(1));
+            anchorDot.style.opacity = "1";
           }
-          if (ring) {
-            ring.setAttribute("cx", sx.toFixed(1));
-            ring.setAttribute("cy", sy.toFixed(1));
+          if (outerRing) {
+            outerRing.setAttribute("cx", sx.toFixed(1));
+            outerRing.setAttribute("cy", sy.toFixed(1));
+            const pulse = 6 + Math.sin(elapsedTime * 3) * 1.5;
+            outerRing.setAttribute("r", pulse.toFixed(1));
+            outerRing.style.opacity = "0.75";
           }
-          if (poly) {
-            poly.setAttribute(
-              "points",
-              `${sx.toFixed(1)},${sy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)} ${tx.toFixed(1)},${ty.toFixed(1)}`
-            );
+          if (polyline) {
+            const elbowX = sx + spec.callout.labelDx * 0.4;
+            const elbowY = sy;
+            const pts = `${sx.toFixed(1)},${sy.toFixed(1)} ${elbowX.toFixed(1)},${elbowY.toFixed(1)} ${targetX.toFixed(1)},${targetY.toFixed(1)}`;
+            polyline.setAttribute("points", pts);
+            polyline.style.opacity = "0.7";
           }
-          if (label) {
-            label.setAttribute("transform", `translate(${tx.toFixed(1)}, ${ty.toFixed(1)})`);
+          if (cardEl) {
+            const isLeft = spec.callout.labelDx < 0;
+            const cardW = 260;
+            const posX = isLeft ? targetX - cardW : targetX;
+            const posY = targetY - 32;
+            cardEl.style.transform = `translate3d(${posX.toFixed(1)}px, ${posY.toFixed(1)}px, 0)`;
+            cardEl.style.opacity = "1";
+            cardEl.style.pointerEvents = "auto";
           }
-        });
-      }
+        } else {
+          if (anchorDot) anchorDot.style.opacity = "0";
+          if (outerRing) outerRing.style.opacity = "0";
+          if (polyline) polyline.style.opacity = "0";
+          if (cardEl) {
+            cardEl.style.opacity = "0";
+            cardEl.style.pointerEvents = "none";
+          }
+        }
+      });
 
-      // Update Editorial Story Beats Opacity & Transforms
-      // Beat 1: Active during 0.18 -> 0.44
-      const beat1Alpha =
-        smoothstep(0.18, 0.25, p) * (1 - smoothstep(0.40, 0.46, p));
-      if (beat1Ref.current) {
-        beat1Ref.current.style.opacity = `${beat1Alpha}`;
-        beat1Ref.current.style.transform = `translateY(${(1 - beat1Alpha) * 16}px)`;
-        beat1Ref.current.style.pointerEvents = beat1Alpha > 0.2 ? "auto" : "none";
-      }
-
-      // Beat 2: Active during 0.44 -> 0.70
-      const beat2Alpha =
-        smoothstep(0.44, 0.52, p) * (1 - smoothstep(0.66, 0.72, p));
-      if (beat2Ref.current) {
-        beat2Ref.current.style.opacity = `${beat2Alpha}`;
-        beat2Ref.current.style.transform = `translateY(${(1 - beat2Alpha) * 16}px)`;
-        beat2Ref.current.style.pointerEvents = beat2Alpha > 0.2 ? "auto" : "none";
-      }
-
-      // Beat 3: Active during 0.70 -> 0.90
-      const beat3Alpha =
-        smoothstep(0.70, 0.76, p) * (1 - smoothstep(0.88, 0.92, p));
-      if (beat3Ref.current) {
-        beat3Ref.current.style.opacity = `${beat3Alpha}`;
-        beat3Ref.current.style.transform = `translate(-50%, ${(1 - beat3Alpha) * 16}px)`;
-        beat3Ref.current.style.pointerEvents = beat3Alpha > 0.2 ? "auto" : "none";
-      }
-
-      // 4-Corner HUD: Fades out during handoff to workspace
-      const hudAlpha = 1 - smoothstep(0.88, 0.96, p);
-      if (hudRef.current) {
-        hudRef.current.style.opacity = `${hudAlpha}`;
-      }
-
-      // Bottom-Left Progress Track
+      // Storytelling Beats Visibility via direct DOM style mutation
       if (progressFillRef.current) {
-        progressFillRef.current.style.width = `${Math.min(100, Math.max(0, p * 100))}%`;
+        progressFillRef.current.style.width = `${(p * 100).toFixed(1)}%`;
       }
 
-      // Canvas Alpha Fade during handoff
-      canvas.style.opacity = `${stageAlpha}`;
+      if (hudRef.current) {
+        hudRef.current.style.opacity = p > 0.92 ? "0" : "1";
+      }
 
-      // Render Scene
+      if (beat1Ref.current) {
+        if (p >= 0.18 && p <= 0.44) {
+          const beatP = (p - 0.18) / 0.26;
+          const alpha =
+            beatP < 0.25 ? beatP / 0.25 : beatP > 0.75 ? (1 - beatP) / 0.25 : 1;
+          beat1Ref.current.style.opacity = alpha.toFixed(3);
+          beat1Ref.current.style.transform = `translateY(${(-50 + (1 - alpha) * 8).toFixed(1)}%)`;
+        } else {
+          beat1Ref.current.style.opacity = "0";
+        }
+      }
+
+      if (beat2Ref.current) {
+        if (p >= 0.44 && p <= 0.7) {
+          const beatP = (p - 0.44) / 0.26;
+          const alpha =
+            beatP < 0.25 ? beatP / 0.25 : beatP > 0.75 ? (1 - beatP) / 0.25 : 1;
+          beat2Ref.current.style.opacity = alpha.toFixed(3);
+          beat2Ref.current.style.transform = `translateY(${(-50 + (1 - alpha) * 8).toFixed(1)}%)`;
+        } else {
+          beat2Ref.current.style.opacity = "0";
+        }
+      }
+
+      if (beat3Ref.current) {
+        if (p >= 0.7 && p <= 0.9) {
+          const beatP = (p - 0.7) / 0.2;
+          const alpha =
+            beatP < 0.25 ? beatP / 0.25 : beatP > 0.75 ? (1 - beatP) / 0.25 : 1;
+          beat3Ref.current.style.opacity = alpha.toFixed(3);
+        } else {
+          beat3Ref.current.style.opacity = "0";
+        }
+      }
+
       renderer.render(scene, camera);
     };
 
-    animate();
+    renderLoop();
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("resize", handleResize);
-
-      // Dispose Geometries and Materials
-      sGeom.dispose();
-      stemGeom.dispose();
-      detachedGeom.dispose();
-      sMaterial.dispose();
-      stemMaterial.dispose();
-      detachedMaterial.dispose();
-      detachedEdgesGeom.dispose();
-      detachedLineMat.dispose();
-      coreMat.dispose();
-      coreBoxGeom.dispose();
-      grid.dispose();
-      shadowGeo.dispose();
-      shadowMat.dispose();
-      shadowTex.dispose();
-      particleGeo.dispose();
-      particleMat.dispose();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("resize", onResize);
       renderer.dispose();
     };
   }, []);
 
-  const detachedSpecs = DOLLAR_BLOCKS.filter((b) => b.callout);
-
   return (
-    <section ref={sectionRef} className="relative h-[400vh] w-full bg-white">
-      {/* Sticky 100vh Viewport */}
+    <section
+      ref={sectionRef}
+      className="relative w-full h-[400vh] bg-transparent"
+    >
+      {/* Sticky 100vh WebGL viewport with daylight alpine sky */}
       <div
-        className="sticky top-0 h-screen w-full overflow-hidden bg-white"
+        className="sticky top-0 h-screen w-full overflow-hidden"
         style={{
           background:
-            "radial-gradient(circle at 50% 42%, #FFFFFF 0%, #F8FAFC 58%, #EEF2F7 100%)",
+            "linear-gradient(180deg, #E8F1FC 0%, #F4F8FD 42%, #FFFFFF 100%)",
         }}
       >
-        {/* Subtle Architectural Grid on Canvas Plane */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#E2E8F0_1px,transparent_1px),linear-gradient(to_bottom,#E2E8F0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_45%,#000_70%,transparent_100%)] pointer-events-none opacity-40" />
+        {/* Three.js Canvas */}
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
 
-        {/* 3D WebGL Canvas */}
-        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full transition-opacity duration-300" />
-
-        {/* Floating 3D-to-2D SVG Wireframe Callouts */}
+        {/* SVG Connector Lines Strictly for Polylines & Anchor Rings */}
         <svg
           ref={calloutGroupRef}
-          className="pointer-events-none absolute inset-0 z-10 h-full w-full transition-opacity duration-300"
+          className="pointer-events-none absolute inset-0 z-10 w-full h-full"
         >
-          {detachedSpecs.map((spec) => {
-            const isLeft = (spec.callout?.labelDx || 0) < 0;
+          {DOLLAR_BLOCKS.map((spec) => {
+            if (!spec.callout) return null;
             return (
-              <g key={spec.id} className="select-none font-mono">
-                {/* 3D Anchor Dot */}
+              <g key={`svg_wire_${spec.id}`}>
+                {/* Target Dot */}
                 <circle
                   ref={(el) => {
                     anchorDotRefs.current[spec.id] = el;
@@ -554,8 +665,8 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
                   }}
                   r="7"
                   fill="none"
-                  stroke="#93C5FD"
-                  strokeWidth="1"
+                  stroke="#3B82F6"
+                  strokeWidth="1.5"
                 />
                 {/* Leader Polyline */}
                 <polyline
@@ -563,80 +674,72 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
                     polylineRefs.current[spec.id] = el;
                   }}
                   fill="none"
-                  stroke="#94A3B8"
-                  strokeWidth="1"
+                  stroke="#2563EB"
+                  strokeWidth="1.75"
+                  strokeOpacity="0.65"
                 />
-                {/* Monospace Wireframe Label Group */}
-                <g
-                  ref={(el) => {
-                    labelGroupRefs.current[spec.id] = el;
-                  }}
-                >
-                  <rect
-                    x={isLeft ? -150 : 0}
-                    y={-14}
-                    width={150}
-                    height={30}
-                    fill="rgba(255, 255, 255, 0.88)"
-                    rx={6}
-                    stroke="#E2E8F0"
-                    strokeWidth={1}
-                  />
-                  <text
-                    x={isLeft ? -8 : 8}
-                    y={-1}
-                    textAnchor={isLeft ? "end" : "start"}
-                    className="font-mono text-[11px] font-bold fill-[#0F172A] tracking-wider"
-                  >
-                    [{spec.callout?.code}] {spec.callout?.title}
-                  </text>
-                  <text
-                    x={isLeft ? -8 : 8}
-                    y={11}
-                    textAnchor={isLeft ? "end" : "start"}
-                    className="font-mono text-[9px] fill-[#64748B] tracking-wide"
-                  >
-                    {spec.callout?.sub}
-                  </text>
-                </g>
               </g>
             );
           })}
         </svg>
 
-        {/* Igloo-Style 4-Corner HUD */}
+        {/* Bold Floating HTML Pop-Up Cards (01-04) Synced via translate3d DOM transforms */}
+        <div className="pointer-events-none absolute inset-0 z-20">
+          {DOLLAR_BLOCKS.map((spec) => {
+            if (!spec.callout) return null;
+            return (
+              <div
+                key={`card_${spec.id}`}
+                ref={(el) => {
+                  cardRefs.current[spec.id] = el;
+                }}
+                style={{ opacity: 0 }}
+                className="absolute top-0 left-0 w-[260px] bg-white/95 backdrop-blur-md border-2 border-blue-500/25 rounded-2xl px-4 py-3 shadow-[0_14px_34px_-8px_rgba(37,99,235,0.22)] pointer-events-auto transition-transform duration-300 hover:scale-105 hover:border-blue-500"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="bg-blue-600 text-white font-mono text-xs font-bold px-2 py-0.5 rounded-md">
+                    {spec.callout.code}
+                  </span>
+                  <span className="text-base font-extrabold text-slate-900 tracking-tight">
+                    {spec.callout.title}
+                  </span>
+                </div>
+                <p className="text-xs font-medium text-slate-600 leading-snug">
+                  {spec.callout.sub}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Igloo-Style 4-Corner HUD (No A2UI badge, scaled up Nyra 2.0 wordmark) */}
         <div
           ref={hudRef}
           className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between p-6 sm:p-8 select-none transition-opacity duration-300"
         >
           {/* Top Row */}
           <div className="flex items-start justify-between">
-            {/* Top-Left: Brand Lockup */}
-            <div className="pointer-events-auto flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-[#2177D1] flex items-center justify-center text-white shadow-xs">
-                <Shield className="w-4 h-4" />
+            {/* Top-Left: Scaled-up Brand Lockup */}
+            <div className="pointer-events-auto flex items-center gap-3.5">
+              <div className="w-14 h-14 rounded-2xl bg-[#2563EB] flex items-center justify-center text-white shadow-lg shadow-blue-600/25">
+                <Shield className="w-7 h-7" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-sans text-base font-extrabold tracking-tight text-[#0F172A]">
-                    NYRA 2.0
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                    A2UI v0.9
-                  </span>
-                </div>
-                <span className="text-[11px] font-mono text-[#64748B] block leading-none mt-0.5">
-                  // Financial Futures Education · Canada
+                <span className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 block leading-tight">
+                  NYRA 2.0
+                </span>
+                <span className="text-xs md:text-sm font-mono font-medium text-slate-600 block mt-0.5">
+                  Financial Futures Education · Canada
                 </span>
               </div>
             </div>
 
             {/* Top-Right: Mission Narrative */}
-            <div className="hidden sm:block text-right max-w-[270px] space-y-1">
-              <span className="text-[11px] font-mono text-[#2563EB] font-bold block">
-                ////// Mission
+            <div className="hidden sm:block text-right max-w-[280px] space-y-1">
+              <span className="text-xs font-mono text-[#2563EB] font-bold block uppercase tracking-wider">
+                Mission
               </span>
-              <p className="text-[11.5px] font-mono text-[#334155] leading-relaxed">
+              <p className="text-xs font-mono text-slate-600 leading-relaxed">
                 Empowering Canadian youth to never miss a bill and never fall for a scam. Zero bank logins. 20% of profits fund free workshops.
               </p>
             </div>
@@ -646,11 +749,11 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
           <div className="flex items-end justify-between">
             {/* Bottom-Left: Scroll Progress Track */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[11px] font-mono text-[#475569]">
-                <ArrowDown className="w-3.5 h-3.5 text-[#2563EB] animate-bounce" />
-                <span>Scroll down to discover</span>
+              <div className="flex items-center gap-2 text-xs font-mono text-slate-600">
+                <ArrowDown className="w-4 h-4 text-[#2563EB] animate-bounce" />
+                <span>Scroll down to explore</span>
               </div>
-              <div className="w-24 h-1 bg-slate-200 rounded-full overflow-hidden">
+              <div className="w-28 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                 <div
                   ref={progressFillRef}
                   className="h-full bg-[#2563EB] rounded-full transition-all duration-75"
@@ -662,10 +765,10 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
             {/* Bottom-Right: Quick Jump Pill */}
             <button
               onClick={onJumpToApp}
-              className="pointer-events-auto px-4 py-2 rounded-full border border-slate-200 bg-white/90 backdrop-blur-sm text-xs font-mono font-medium text-slate-700 hover:border-[#2563EB] hover:text-[#2563EB] transition cursor-pointer shadow-xs flex items-center gap-1.5"
+              className="pointer-events-auto px-5 py-2.5 rounded-full border border-slate-200 bg-white/95 backdrop-blur-sm text-xs font-mono font-semibold text-slate-700 hover:border-[#2563EB] hover:text-[#2563EB] transition cursor-pointer shadow-sm hover:shadow-md flex items-center gap-2"
             >
               <span>Jump to Live App</span>
-              <ArrowDown className="w-3.5 h-3.5" />
+              <ArrowDown className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -674,7 +777,7 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
         <div
           ref={beat1Ref}
           style={{ opacity: 0 }}
-          className="absolute right-6 sm:right-16 top-1/2 -translate-y-1/2 max-w-md z-30 space-y-4 bg-white/90 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_10px_35px_rgba(15,23,42,0.06)]"
+          className="absolute right-6 sm:right-16 top-1/2 -translate-y-1/2 max-w-md z-30 space-y-4 bg-white/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_10px_35px_rgba(15,23,42,0.06)]"
         >
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-mono text-[#2563EB] font-semibold">
             <span>BILL & TRIAL GUARD</span>
@@ -698,7 +801,7 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
         <div
           ref={beat2Ref}
           style={{ opacity: 0 }}
-          className="absolute left-6 sm:left-16 top-1/2 -translate-y-1/2 max-w-md z-30 space-y-4 bg-white/90 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_10px_35px_rgba(15,23,42,0.06)]"
+          className="absolute left-6 sm:left-16 top-1/2 -translate-y-1/2 max-w-md z-30 space-y-4 bg-white/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_10px_35px_rgba(15,23,42,0.06)]"
         >
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-xs font-mono text-red-700 font-semibold">
             <span>CANADIAN SCAM SHIELD</span>
@@ -729,12 +832,12 @@ export const DollarSculptureStage: React.FC<DollarSculptureStageProps> = ({
               &lt; $0.02/MO AI COST. 20% FUNDS YOUTH.
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-md mx-auto leading-relaxed">
-              Powered by Claude Haiku 5.5 prompt caching and open-standard <strong>A2UI v0.9</strong> declarative mobile widgets. 20% of net profits fund free Financial Futures Education workshops across Canada.
+              Powered by Claude Haiku 5.5 prompt caching and open-standard declarative mobile widgets. 20% of net profits fund free Financial Futures Education workshops across Canada.
             </p>
           </div>
           <button
             onClick={onJumpToApp}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#2177D1] hover:bg-[#3A8EE0] text-white font-mono text-xs font-semibold transition cursor-pointer shadow-sm hover:shadow-md"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-mono text-xs font-semibold transition cursor-pointer shadow-sm hover:shadow-md"
           >
             <span>Enter Live A2UI App ↓</span>
           </button>

@@ -879,3 +879,167 @@ def compile_text_surface(
     ]
     data_model = {"message": text}
     return compile_a2ui_envelopes(sid, components, data_model)
+
+
+def compile_outreach_draft_surface(
+    user_id: int,
+    tool_result: Dict[str, Any],
+    surface_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    sid = surface_id or generate_surface_id("outreach")
+    email_id = tool_result.get("email_id")
+    recipient_name = tool_result.get("recipient_name", "Lead")
+    recipient_email = tool_result.get("recipient_email", "")
+    organization = tool_result.get("organization", "Prospective Partner")
+    youth_reach = tool_result.get("youth_reach_est", 1)
+    subject = tool_result.get("subject", "Nyra 2.0 Introduction")
+    body_preview = tool_result.get("body_preview", tool_result.get("full_body", ""))
+
+    reach_label = f"~{youth_reach} youth reach" if youth_reach > 1 else "1 individual youth"
+    header_badge = f"{organization} · {reach_label}"
+
+    components = [
+        {
+            "id": "root",
+            "component": "Card",
+            "child": "col_root",
+        },
+        {
+            "id": "col_root",
+            "component": "Column",
+            "children": [
+                "header_row",
+                "badge_row",
+                "to_row",
+                "subject_row",
+                "divider_1",
+                "body_preview_text",
+                "divider_2",
+                "status_row",
+                "actions_row",
+            ],
+        },
+        {
+            "id": "header_row",
+            "component": "Row",
+            "children": ["title_text"],
+        },
+        {
+            "id": "title_text",
+            "component": "Text",
+            "text": "OUTREACH DRAFT · CASL VERIFIED ✓",
+            "variant": "h3",
+        },
+        {
+            "id": "badge_row",
+            "component": "Row",
+            "children": ["org_badge_text"],
+        },
+        {
+            "id": "org_badge_text",
+            "component": "Text",
+            "text": header_badge,
+            "variant": "caption",
+        },
+        {
+            "id": "to_row",
+            "component": "Row",
+            "children": ["to_text"],
+        },
+        {
+            "id": "to_text",
+            "component": "Text",
+            "text": f"To: {recipient_name} <{recipient_email}>",
+            "variant": "body",
+        },
+        {
+            "id": "subject_row",
+            "component": "Row",
+            "children": ["subject_text"],
+        },
+        {
+            "id": "subject_text",
+            "component": "Text",
+            "text": f"Subject: {subject}",
+            "variant": "body",
+        },
+        {
+            "id": "divider_1",
+            "component": "Divider",
+        },
+        {
+            "id": "body_preview_text",
+            "component": "Text",
+            "text": body_preview,
+            "variant": "caption",
+        },
+        {
+            "id": "divider_2",
+            "component": "Divider",
+        },
+        {
+            "id": "status_row",
+            "component": "Row",
+            "children": ["status_label_text"],
+        },
+        {
+            "id": "status_label_text",
+            "component": "Text",
+            "text": {"path": "/email/statusLabel"},
+            "variant": "caption",
+        },
+        {
+            "id": "actions_row",
+            "component": "Row",
+            "children": ["approve_btn", "discard_btn"],
+        },
+        {
+            "id": "approve_btn",
+            "component": "Button",
+            "child": "approve_btn_txt",
+            "variant": "primary",
+            "action": {
+                "event": {
+                    "name": "approve_send_outreach_email",
+                    "context": {"email_id": email_id},
+                }
+            },
+        },
+        {
+            "id": "approve_btn_txt",
+            "component": "Text",
+            "text": "Approve & Send Email",
+        },
+        {
+            "id": "discard_btn",
+            "component": "Button",
+            "child": "discard_btn_txt",
+            "variant": "default",
+            "action": {
+                "event": {
+                    "name": "discard_outreach_email",
+                    "context": {"email_id": email_id},
+                }
+            },
+        },
+        {
+            "id": "discard_btn_txt",
+            "component": "Text",
+            "text": "Discard Draft",
+        },
+    ]
+
+    data_model = {
+        "email": {
+            "email_id": email_id,
+            "recipient": f"{recipient_name} <{recipient_email}>",
+            "subject": subject,
+            "body": body_preview,
+            "statusLabel": "Pending Owner Approval",
+            "approved": False,
+            "sent": False,
+        }
+    }
+
+    return compile_a2ui_envelopes(sid, components, data_model)
+

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { Navbar } from "@/components/Navbar";
-import { WorkspaceAct } from "@/components/scroll/WorkspaceAct";
+import { LiveSimulatorSection } from "@/components/scroll/LiveSimulatorSection";
+import { LiveDashboardSection } from "@/components/scroll/LiveDashboardSection";
 import { AccessAct } from "@/components/scroll/AccessAct";
 import SettingsModal from "@/components/SettingsModal";
 
@@ -19,7 +20,7 @@ const DollarSculptureStage = dynamic(
   }
 );
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function Home() {
   const [activeMode, setActiveMode] = useState<"live" | "mock">("mock");
@@ -37,6 +38,9 @@ export default function Home() {
   const [scamLogs, setScamLogs] = useState<any[]>([]);
   const [latestPiiRedacted, setLatestPiiRedacted] = useState(false);
   const [latestA2UIMessages, setLatestA2UIMessages] = useState<any[]>([]);
+  const [outreachLeads, setOutreachLeads] = useState<any[]>([]);
+  const [outreachEmails, setOutreachEmails] = useState<any[]>([]);
+  const [outreachSummary, setOutreachSummary] = useState<any>(null);
 
   // Fetch initial state on mount
   const fetchState = async () => {
@@ -51,6 +55,9 @@ export default function Home() {
         setTelemetryLatest(data.telemetry_latest);
         setTelemetryLogs(data.telemetry_logs || []);
         setScamLogs(data.scam_logs || []);
+        setOutreachLeads(data.outreach_leads || []);
+        setOutreachEmails(data.outreach_emails || []);
+        setOutreachSummary(data.outreach_summary || null);
       }
     } catch (err) {
       console.warn("FastAPI backend not reachable yet or offline:", err);
@@ -123,6 +130,9 @@ export default function Home() {
           setTelemetryLatest(data.state.telemetry_latest);
           setTelemetryLogs(data.state.telemetry_logs || []);
           setScamLogs(data.state.scam_logs || []);
+          setOutreachLeads(data.state.outreach_leads || []);
+          setOutreachEmails(data.state.outreach_emails || []);
+          setOutreachSummary(data.state.outreach_summary || null);
 
           // Append assistant turn
           setMessages((prev) => [
@@ -143,8 +153,7 @@ export default function Home() {
         ...prev,
         {
           role: "assistant",
-          content: "Network error connecting to Nyra 2.0 backend at localhost:8000.",
-          skill_tag: "error",
+          content: "Sorry, I had trouble processing that. Please check if the local server is running.",
         },
       ]);
     } finally {
@@ -152,11 +161,12 @@ export default function Home() {
     }
   };
 
-  // Bidirectional A2UI Action Handler ($0.00 LLM cost)
+  // Handle direct A2UI actions (e.g. mark bill paid, approve outreach email)
   const handleA2UIAction = async (
     surfaceId: string,
     actionName: string,
-    context?: any
+    context?: any,
+    dataModel?: any
   ) => {
     try {
       const res = await fetch(`${API_BASE}/api/a2ui/action`, {
@@ -166,26 +176,30 @@ export default function Home() {
           surfaceId,
           actionName,
           context: context || {},
+          dataModel: dataModel || {},
           user_id: 1,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.a2ui_messages)) {
+        if (Array.isArray(data.a2ui_messages) && data.a2ui_messages.length > 0) {
           setLatestA2UIMessages(data.a2ui_messages);
         }
-
         if (data.state) {
           setUser(data.state.user);
           setBills(data.state.bills || []);
           setTrials(data.state.trials || []);
           setTelemetryLatest(data.state.telemetry_latest);
           setTelemetryLogs(data.state.telemetry_logs || []);
+          setScamLogs(data.state.scam_logs || []);
+          setOutreachLeads(data.state.outreach_leads || []);
+          setOutreachEmails(data.state.outreach_emails || []);
+          setOutreachSummary(data.state.outreach_summary || null);
         }
       }
     } catch (err) {
-      console.error("A2UI Action execution failed:", err);
+      console.error("A2UI Action error:", err);
     }
   };
 
@@ -212,6 +226,9 @@ export default function Home() {
           setUser(data.state.user);
           setBills(data.state.bills || []);
           setTrials(data.state.trials || []);
+          setOutreachLeads(data.state.outreach_leads || []);
+          setOutreachEmails(data.state.outreach_emails || []);
+          setOutreachSummary(data.state.outreach_summary || null);
         }
 
         // Add digest notification message to mobile app
@@ -248,6 +265,9 @@ export default function Home() {
           setTelemetryLatest(data.state.telemetry_latest);
           setTelemetryLogs(data.state.telemetry_logs || []);
           setScamLogs(data.state.scam_logs || []);
+          setOutreachLeads(data.state.outreach_leads || []);
+          setOutreachEmails(data.state.outreach_emails || []);
+          setOutreachSummary(data.state.outreach_summary || null);
         }
       }
     } catch (err) {
@@ -280,8 +300,15 @@ export default function Home() {
     }
   };
 
+  const handleSelectLeadToDraft = (leadName: string, organization: string) => {
+    handleSendMessage(
+      `Draft a personalized CASL-compliant outreach email to ${leadName} at ${organization} introducing Nyra 2.0.`
+    );
+    scrollTo("live-workspace");
+  };
+
   return (
-    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-[#2177D1]/15 selection:text-[#2177D1]">
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-[#2563EB]/15 selection:text-[#2563EB]">
       {/* 1. Workspace Sticky Navbar: Fades in only once user scrolls into #live-workspace */}
       <div
         className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
@@ -302,28 +329,40 @@ export default function Home() {
         {/* Phase 2: 3D Procedural Modular $ Sculpture Stage (400vh) */}
         <DollarSculptureStage onJumpToApp={() => scrollTo("live-workspace")} />
 
-        {/* Phase 3: Live A2UI Mobile App & Companion Real-Time HUD */}
-        <div id="live-workspace">
-          <WorkspaceAct
-            user={user}
-            bills={bills}
-            trials={trials}
-            messages={messages}
-            telemetryLatest={telemetryLatest}
-            telemetryLogs={telemetryLogs}
-            scamLogs={scamLogs}
-            latestA2UIMessages={latestA2UIMessages}
-            latestPiiRedacted={latestPiiRedacted}
-            isLoading={isLoading}
-            activeMode={activeMode}
-            onSendMessage={handleSendMessage}
-            onAction={handleA2UIAction}
-            onTriggerCron={handleTriggerCron}
-            onResetDemo={handleResetDemo}
-          />
-        </div>
+        {/* Phase 3: Interactive Smartphone Mockup + 6-Card Command Deck */}
+        <LiveSimulatorSection
+          user={user}
+          bills={bills}
+          trials={trials}
+          messages={messages}
+          latestA2UIMessages={latestA2UIMessages}
+          isLoading={isLoading}
+          activeMode={activeMode}
+          onToggleMode={() => setActiveMode(activeMode === "live" ? "mock" : "live")}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onSendMessage={handleSendMessage}
+          onAction={handleA2UIAction}
+          onTriggerCron={handleTriggerCron}
+          onResetDemo={handleResetDemo}
+        />
 
-        {/* Phase 4: Access, Pricing & 20% Youth Impact Pool */}
+        {/* Phase 4: Full-Width 4-Tier Kinetic Dashboard */}
+        <LiveDashboardSection
+          user={user}
+          bills={bills}
+          trials={trials}
+          telemetryLatest={telemetryLatest}
+          telemetryLogs={telemetryLogs}
+          scamLogs={scamLogs}
+          latestA2UIMessages={latestA2UIMessages}
+          latestPiiRedacted={latestPiiRedacted}
+          outreachLeads={outreachLeads}
+          outreachEmails={outreachEmails}
+          outreachSummary={outreachSummary}
+          onSelectLeadToDraft={handleSelectLeadToDraft}
+        />
+
+        {/* Phase 5: Access, Pricing & 20% Youth Impact Pool */}
         <div id="access-impact">
           <AccessAct onOpenSettings={() => setIsSettingsOpen(true)} />
         </div>

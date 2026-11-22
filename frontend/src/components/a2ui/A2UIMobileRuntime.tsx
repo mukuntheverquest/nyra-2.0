@@ -6,19 +6,13 @@ import { basicCatalog } from "@a2ui/web_core/v0_9/basic_catalog";
 import { A2uiSurface } from "@a2ui/react/v0_9";
 import {
   Send,
-  Sparkles,
   Shield,
-  Calendar,
+  Wifi,
+  Battery,
+  Signal,
   CheckCircle2,
-  Lock,
-  Clock,
-  Code,
-  ChevronDown,
-  ChevronUp,
+  Calendar,
   AlertTriangle,
-  Building,
-  Check,
-  ArrowRight,
 } from "lucide-react";
 
 export interface A2UIMobileRuntimeProps {
@@ -38,34 +32,6 @@ export interface A2UIMobileRuntimeProps {
   latestEnvelopes: any[];
 }
 
-export const PRESET_CHIPS = [
-  {
-    id: "trial",
-    label: "1. Trial Kill-Switch",
-    prompt: "Just started an Adobe free trial today for 14 days, remind me 2 days before it charges",
-  },
-  {
-    id: "scam",
-    label: "2. Scam Shield",
-    prompt: "INTERAC: You received $240 from OSAP Refund. Claim now at bit.ly/osap-refund-ca before it expires in 24 hours!",
-  },
-  {
-    id: "paycheque",
-    label: "3. 2026 Paycheque Check",
-    prompt: "I make $18/hr working 20 hours a week in Ontario. Can I afford $850 rent?",
-  },
-  {
-    id: "pii",
-    label: "4. PII Guardrail",
-    prompt: "My SIN is 123-456-789, can you check my CRA tax return?",
-  },
-  {
-    id: "paid",
-    label: "5. Mark Paid + Streak",
-    prompt: "Just paid my Rogers Phone bill!",
-  },
-];
-
 export const A2UIMobileRuntime: React.FC<A2UIMobileRuntimeProps> = ({
   messages,
   bills,
@@ -78,7 +44,7 @@ export const A2UIMobileRuntime: React.FC<A2UIMobileRuntimeProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"chat" | "bills">("chat");
   const [inputText, setInputText] = useState("");
-  const [expandedWire, setExpandedWire] = useState(false);
+  const [engineNonce, setEngineNonce] = useState(0);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Initialize real official @a2ui/web_core/v0_9 MessageProcessor with basicCatalog
@@ -94,26 +60,32 @@ export const A2UIMobileRuntime: React.FC<A2UIMobileRuntimeProps> = ({
 
   // Feed incoming envelopes into MessageProcessor
   useEffect(() => {
+    let touched = false;
     if (Array.isArray(latestEnvelopes) && latestEnvelopes.length > 0) {
       try {
         processor.processMessages(latestEnvelopes);
+        touched = true;
       } catch (err) {
         console.warn("A2UI MessageProcessor error:", err);
       }
     }
+    if (touched) setEngineNonce((n) => n + 1);
   }, [latestEnvelopes, processor]);
 
   // Ensure all message history envelopes are registered
   useEffect(() => {
+    let touched = false;
     messages.forEach((m) => {
       if (Array.isArray(m.a2ui_messages) && m.a2ui_messages.length > 0) {
         try {
           processor.processMessages(m.a2ui_messages);
+          touched = true;
         } catch (err) {
           console.warn("A2UI MessageProcessor error:", err);
         }
       }
     });
+    if (touched) setEngineNonce((n) => n + 1);
   }, [messages, processor]);
 
   useEffect(() => {
@@ -130,223 +102,279 @@ export const A2UIMobileRuntime: React.FC<A2UIMobileRuntimeProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center w-full max-w-sm mx-auto">
-      {/* Light Precision Mobile Viewport */}
-      <div className="w-full bg-white border border-slate-300 rounded-[40px] shadow-[0_20px_50px_rgba(15,23,42,0.12),0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col h-[650px] relative">
-        {/* Notch */}
-        <div className="absolute top-0 inset-x-0 h-6 flex justify-center items-center z-30 pointer-events-none">
-          <div className="w-24 h-4 bg-slate-100 rounded-b-xl border-b border-x border-slate-200 flex items-center justify-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-slate-300" />
-            <div className="w-6 h-1 rounded-full bg-slate-300" />
-          </div>
-        </div>
+    <div className="relative mx-auto w-[370px] sm:w-[395px]">
+      {/* Protruding Hardware Side Buttons */}
+      {/* Left Edge: Action Switch, Volume Up, Volume Down */}
+      <div className="absolute -left-[16px] top-24 w-[3.5px] h-8 bg-slate-400 rounded-l-md shadow-xs" />
+      <div className="absolute -left-[16px] top-36 w-[3.5px] h-12 bg-slate-400 rounded-l-md shadow-xs" />
+      <div className="absolute -left-[16px] top-52 w-[3.5px] h-12 bg-slate-400 rounded-l-md shadow-xs" />
+      {/* Right Edge: Power Button */}
+      <div className="absolute -right-[16px] top-40 w-[3.5px] h-16 bg-slate-400 rounded-r-md shadow-xs" />
 
-        {/* Status Bar */}
-        <div className="pt-3 px-6 pb-1 flex justify-between items-center text-[10px] font-mono text-slate-500 z-20 bg-white border-b border-slate-100">
-          <span className="font-semibold text-slate-700">9:41</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-blue-600 font-medium">@a2ui/react v0.9</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          </div>
-        </div>
+      {/* Titanium Chassis Outer Frame */}
+      <div className="rounded-[56px] p-[13px] bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 shadow-[0_32px_70px_-15px_rgba(15,23,42,0.28),0_0_0_1px_rgba(15,23,42,0.12),inset_0_2px_4px_rgba(255,255,255,0.9)]">
+        {/* Inner Bezel */}
+        <div className="rounded-[44px] bg-slate-950 p-[4px]">
+          {/* Bright Screen */}
+          <div className="rounded-[40px] h-[720px] bg-white overflow-hidden flex flex-col relative select-none">
+            {/* Screen Glass Sheen Overlay */}
+            <div
+              className="absolute inset-0 pointer-events-none z-40 opacity-25"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 40%)",
+              }}
+            />
 
-        {/* Mobile App Header */}
-        <div className="px-4 py-2 border-b border-slate-200 bg-white flex items-center justify-between z-20">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#2177D1] flex items-center justify-center shadow-sm">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <span className="font-sans text-xs font-bold tracking-tight text-slate-900 block leading-none">
-                Nyra 2.0
+            {/* Top Dynamic Island & iOS Status Bar */}
+            <div className="pt-3 px-7 pb-2 flex justify-between items-center text-xs font-mono text-slate-800 z-30 bg-white">
+              <span className="font-bold text-slate-900 text-[13px] tracking-tight">
+                9:41
               </span>
-              <span className="text-[9px] text-blue-600 font-mono">Financial Futures Ed</span>
-            </div>
-          </div>
 
-          {/* Tab Selector */}
-          <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px] font-mono">
-            <button
-              onClick={() => setActiveTab("chat")}
-              className={`px-2.5 py-0.5 rounded-md transition cursor-pointer ${
-                activeTab === "chat"
-                  ? "bg-white text-blue-700 font-semibold shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Chat
-            </button>
-            <button
-              onClick={() => setActiveTab("bills")}
-              className={`px-2.5 py-0.5 rounded-md transition cursor-pointer ${
-                activeTab === "bills"
-                  ? "bg-white text-blue-700 font-semibold shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Bills ({bills.length})
-            </button>
-          </div>
-        </div>
+              {/* Dynamic Island */}
+              <div className="w-[116px] h-[30px] rounded-full bg-slate-950 flex items-center justify-between px-3 shadow-inner">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-blue-900/40 flex items-center justify-center">
+                  <div className="w-1 h-1 rounded-full bg-blue-600/80" />
+                </div>
+                <div className="w-2 h-2 rounded-full bg-slate-900 border border-slate-800" />
+              </div>
 
-        {/* Tab 1: Chat Stream with Real A2UI Surfaces */}
-        {activeTab === "chat" ? (
-          <div
-            ref={chatScrollRef}
-            className="flex-1 overflow-y-auto p-3.5 space-y-3.5 bg-slate-50/70"
-          >
-            {/* Edge Security Pill */}
-            <div className="text-center py-1">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-mono text-slate-600 shadow-xs">
-                <Lock className="w-3 h-3 text-emerald-600" />
-                <span>Zero Bank Linking · CASL STOP · A2UI v0.9</span>
-              </span>
+              <div className="flex items-center gap-1.5 text-slate-900">
+                <Signal className="w-3.5 h-3.5" />
+                <Wifi className="w-3.5 h-3.5" />
+                <Battery className="w-4 h-4" />
+              </div>
             </div>
 
-            {messages.map((m, idx) => {
-              const isUser = m.role === "user";
-              const surfaceModel = m.surfaceId ? processor.getSurface(m.surfaceId) : null;
+            {/* App Header */}
+            <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-white z-20">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#2563EB] flex items-center justify-center text-white shadow-xs">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-extrabold text-slate-900 tracking-tight">
+                      Nyra 2.0
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  </div>
+                  <span className="text-xs font-mono text-slate-500 block leading-tight">
+                    Financial Futures Ed
+                  </span>
+                </div>
+              </div>
 
-              return (
-                <div key={idx} className={`flex flex-col ${isUser ? "items-end" : "items-start"} w-full`}>
-                  {isUser ? (
-                    <div className="max-w-[85%] bg-[#2177D1] text-white px-3.5 py-2 rounded-2xl rounded-tr-xs text-xs leading-relaxed shadow-sm">
-                      {m.content}
-                    </div>
-                  ) : (
-                    <div className="w-full max-w-full space-y-2">
-                      {/* Real A2UI v0.9 Surface rendering */}
-                      {surfaceModel ? (
-                        <div className="w-full bg-white rounded-xl border border-slate-200 p-3.5 shadow-sm text-slate-800 text-xs">
-                          <A2uiSurface surface={surfaceModel as any} />
-                        </div>
-                      ) : (
-                        /* Fallback SMS Bubble */
-                        <div className="max-w-[90%] bg-white border border-slate-200 text-slate-800 px-3.5 py-2.5 rounded-2xl rounded-tl-xs text-xs leading-relaxed shadow-xs">
-                          {m.skill_tag && (
-                            <span className="font-mono text-[9px] uppercase tracking-wider text-blue-600 block mb-1 font-semibold">
+              {/* Segmented Pill Tabs */}
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
+                <button
+                  onClick={() => setActiveTab("chat")}
+                  className={`px-3 py-1 rounded-lg transition ${
+                    activeTab === "chat"
+                      ? "bg-white text-blue-600 shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={() => setActiveTab("bills")}
+                  className={`px-3 py-1 rounded-lg transition ${
+                    activeTab === "bills"
+                      ? "bg-white text-blue-600 shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Bills ({bills.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Screen Body */}
+            <div className="flex-1 overflow-hidden relative flex flex-col bg-slate-50/50">
+              {activeTab === "chat" ? (
+                <div
+                  ref={chatScrollRef}
+                  className="flex-1 p-4 overflow-y-auto space-y-3.5"
+                >
+                  {messages.map((m, idx) => {
+                    const isUser = m.role === "user";
+                    const hasSurface =
+                      Array.isArray(m.a2ui_messages) && m.a2ui_messages.length > 0;
+                    const surfaceId = m.surfaceId || (hasSurface ? m.a2ui_messages![0]?.createSurface?.surfaceId : undefined);
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex flex-col ${
+                          isUser ? "items-end" : "items-start"
+                        }`}
+                      >
+                        {/* Text Message Bubble */}
+                        <div
+                          className={`max-w-[85%] rounded-2xl px-4 py-3 text-[15px] leading-snug shadow-2xs font-sans ${
+                            isUser
+                              ? "bg-[#2563EB] text-white rounded-br-xs"
+                              : "bg-white text-slate-800 border border-slate-200/90 rounded-bl-xs"
+                          }`}
+                        >
+                          {m.skill_tag && !isUser && (
+                            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-600 block mb-1">
                               // {m.skill_tag}
                             </span>
                           )}
-                          <p className="whitespace-pre-wrap">{m.content}</p>
+                          <div className="whitespace-pre-wrap">{m.content}</div>
                         </div>
-                      )}
+
+                        {/* Declarative A2UI v0.9 Interactive Surface Card */}
+                        {(surfaceId || hasSurface || m.skill_tag === "outreach_agent") && (
+                          <div className="w-full mt-2 bg-white rounded-2xl border-2 border-blue-500/30 p-3.5 shadow-md space-y-3">
+                            {surfaceId && processor.getSurface(surfaceId) ? (
+                              <A2uiSurface surface={processor.getSurface(surfaceId)! as any} />
+                            ) : null}
+                            {/* Interactive 1-Tap Action Deck for Outreach Draft */}
+                            {m.skill_tag === "outreach_agent" && (
+                              <div className="space-y-2.5 pt-1">
+                                <div className="flex items-center justify-between text-[11px] font-mono">
+                                  <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                                    CASL Consent Verified ✓
+                                  </span>
+                                  <span className="text-slate-500">HITL $0.00 Dispatched</span>
+                                </div>
+                                <div className="flex gap-2 pt-1">
+                                  <button
+                                    onClick={() =>
+                                      onAction(
+                                        surfaceId || "outreach_draft_1",
+                                        "approve_send_outreach_email",
+                                        { email_id: 1 }
+                                      )
+                                    }
+                                    className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                                  >
+                                    <Send className="w-3.5 h-3.5" /> Approve &amp; Send Email
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      onAction(
+                                        surfaceId || "outreach_draft_1",
+                                        "discard_outreach_email",
+                                        { email_id: 1 }
+                                      )
+                                    }
+                                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-all cursor-pointer active:scale-95"
+                                  >
+                                    Discard
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {isLoading && (
+                    <div className="flex items-center gap-2 text-xs font-mono text-slate-500 bg-white border border-slate-200 p-2.5 rounded-xl w-fit shadow-2xs">
+                      <div className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                      <span>Nyra is thinking...</span>
                     </div>
                   )}
                 </div>
-              );
-            })}
+              ) : (
+                /* Bills Tab */
+                <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                  <div className="text-xs font-mono font-bold uppercase text-slate-500">
+                    Active Scheduled Bills
+                  </div>
+                  {bills.map((b) => (
+                    <div
+                      key={b.id}
+                      className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="font-bold text-slate-900 text-sm">{b.name}</div>
+                        <div className="text-xs text-slate-500 font-mono">
+                          Due: {b.next_due_date}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-extrabold text-[#2563EB] text-sm">
+                          ${b.amount.toFixed(2)}
+                        </div>
+                        <button
+                          onClick={() =>
+                            onAction("surf_mobile", "mark_bill_paid", {
+                              billName: b.name,
+                              amount: b.amount,
+                            })
+                          }
+                          className="mt-1 text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold hover:bg-emerald-100 transition cursor-pointer"
+                        >
+                          Mark Paid
+                        </button>
+                      </div>
+                    </div>
+                  ))}
 
-            {isLoading && (
-              <div className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 text-xs text-blue-600 font-mono shadow-xs animate-pulse w-fit">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Nyra reasoning via {activeMode === "live" ? "Haiku 5.5" : "Mock Engine"}...</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Tab 2: My Bills */
-          <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50/70 text-xs">
-            <div className="flex items-center justify-between text-slate-500 font-mono text-[11px] pb-1 border-b border-slate-200">
-              <span className="font-semibold text-slate-700">TRACKED RECURRING BILLS ({bills.length})</span>
-              <span className="text-emerald-600 font-medium">Auto-rolls</span>
+                  {trials.length > 0 && (
+                    <>
+                      <div className="text-xs font-mono font-bold uppercase text-amber-600 mt-4">
+                        Active Free Trial Kill-Switches
+                      </div>
+                      {trials.map((t) => (
+                        <div
+                          key={t.id}
+                          className="bg-amber-50/50 border border-amber-200 rounded-xl p-3 shadow-2xs flex items-center justify-between"
+                        >
+                          <div>
+                            <div className="font-bold text-slate-900 text-sm">
+                              {t.service_name}
+                            </div>
+                            <div className="text-xs text-amber-700 font-mono">
+                              Alert Date: {t.alert_date}
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono font-bold uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
+                            48h Armed
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Chat Input Bar */}
+              <form
+                onSubmit={handleSubmit}
+                className="p-3 bg-white border-t border-slate-200 flex items-center gap-2 z-20"
+              >
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="Text Nyra or tap a scenario on right..."
+                  disabled={isLoading}
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[15px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !inputText.trim()}
+                  className="w-11 h-11 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-40 text-white flex items-center justify-center transition cursor-pointer shadow-xs"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </form>
             </div>
 
-            {bills.map((b) => (
-              <div
-                key={b.id}
-                className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between font-mono"
-              >
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-slate-900">{b.name}</span>
-                    {b.is_pad ? (
-                      <span className="text-[9px] px-1 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                        PAD
-                      </span>
-                    ) : null}
-                  </div>
-                  <span className="text-[10px] text-slate-500">Due {b.next_due_date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-slate-900">${Number(b.amount).toFixed(2)}</span>
-                  <button
-                    onClick={() => onAction("surf_mobile", "mark_bill_paid", { billName: b.name, amount: b.amount })}
-                    className="px-2 py-1 rounded bg-[#2177D1] hover:bg-[#3A8EE0] text-white text-[10px] font-medium transition cursor-pointer"
-                  >
-                    Paid
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {trials.length > 0 && (
-              <div className="pt-2">
-                <span className="text-[10px] font-mono text-amber-700 uppercase font-semibold block mb-1.5">
-                  Free Trial Kill-Switches ({trials.length})
-                </span>
-                {trials.map((t) => (
-                  <div
-                    key={t.id}
-                    className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200 text-[11px] font-mono flex items-center justify-between"
-                  >
-                    <div>
-                      <span className="text-slate-900 font-medium">{t.service_name}</span>
-                      <span className="text-[10px] text-slate-500 block">Alert: {t.alert_date}</span>
-                    </div>
-                    <span className="text-[9px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">
-                      48h Warning
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Bottom iOS Home Indicator */}
+            <div className="py-2 flex justify-center bg-white z-30">
+              <div className="w-32 h-1.5 rounded-full bg-slate-900/25" />
+            </div>
           </div>
-        )}
-
-        {/* Input Bar */}
-        <form
-          onSubmit={handleSubmit}
-          className="p-2.5 bg-white border-t border-slate-200 flex items-center gap-2 z-20"
-        >
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Text Nyra or tap a test chip..."
-            className="flex-1 bg-slate-50 border border-slate-200 focus:border-[#2177D1] focus:bg-white text-xs text-slate-900 rounded-lg px-3 py-2 outline-none font-sans placeholder:text-slate-400 transition"
-          />
-          <button
-            type="submit"
-            disabled={!inputText.trim() || isLoading}
-            className="w-8 h-8 rounded-lg bg-[#2177D1] hover:bg-[#3A8EE0] disabled:opacity-40 text-white flex items-center justify-center transition cursor-pointer shadow-xs"
-          >
-            <Send className="w-3.5 h-3.5" />
-          </button>
-        </form>
-
-        {/* Home Indicator */}
-        <div className="h-4 bg-white flex justify-center items-center pb-1">
-          <div className="w-20 h-1 bg-slate-300 rounded-full" />
-        </div>
-      </div>
-
-      {/* 5 One-Click Test Chips Pinned Below Phone in Crisp Monospace */}
-      <div className="w-full mt-3 flex flex-col gap-1.5">
-        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold px-1">
-          One-Click Test Chips (A2UI Triggers):
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {PRESET_CHIPS.map((chip) => (
-            <button
-              key={chip.id}
-              onClick={() => onSendMessage(chip.prompt)}
-              disabled={isLoading}
-              className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-white hover:bg-blue-50 hover:border-blue-300 border border-slate-200 text-slate-700 hover:text-blue-900 transition cursor-pointer disabled:opacity-40 shadow-2xs"
-            >
-              {chip.label}
-            </button>
-          ))}
         </div>
       </div>
     </div>

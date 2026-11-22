@@ -10,6 +10,8 @@ from backend.agent.tools import (
     execute_analyze_scam,
     execute_ontario_paycheque,
     execute_search_curriculum,
+    execute_find_youth_outreach_leads,
+    execute_draft_outreach_email,
 )
 from backend.a2ui.compiler import (
     compile_bill_or_trial_surface,
@@ -17,7 +19,9 @@ from backend.a2ui.compiler import (
     compile_paycheque_surface,
     compile_coach_surface,
     compile_text_surface,
+    compile_outreach_draft_surface,
 )
+from backend.db.database import get_outreach_leads
 from backend.config import HAIKU_PRICING_PER_MTOK, USD_TO_CAD
 
 
@@ -75,7 +79,82 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
         )
         a2ui_messages = compile_bill_or_trial_surface(user_id, "add_trial_killswitch", tool_result)
 
-    # 3. Preset 2 / Canadian Scam Shield
+    # 3. 4th Agent: Owner Youth Outreach & Email Agent (Higher priority than general keywords)
+    elif any(kw in text_lower for kw in ["outreach", "email", "leads", "lead", "campus", "waitlist", "reach young", "priya", "jordan", "devon", "chloe", "marcus"]):
+        skill_used = "outreach_agent"
+        leads = get_outreach_leads(segment="all", limit=5)
+        selected_lead = None
+        for l in leads:
+            if l["name"].lower() in text_lower or (l.get("notes") and any(w in l["notes"].lower() for w in text_lower.split())):
+                selected_lead = l
+                break
+        if not selected_lead and leads:
+            selected_lead = leads[0]
+
+        if selected_lead:
+            lead_id = selected_lead["id"]
+            rec_name = selected_lead["name"]
+            rec_email = selected_lead["email"]
+            segment = selected_lead["segment"]
+            org = selected_lead["organization"]
+            reach = selected_lead.get("youth_reach_est", 1)
+
+            if segment == "residence_life":
+                subject = "Empowering McMaster First-Years with Nyra 2.0 Financial Safety"
+                body_text = (
+                    f"Hi {rec_name},\n\n"
+                    f"I'm reaching out from Financial Futures Education (FFE). We noticed {org}'s commitment to first-year student wellness and move-in support.\n\n"
+                    f"Nyra 2.0 is our text-first financial guardrail designed specifically for young adults starting independent living — automating bill due dates, trial kill-switches, and zero-bank-linking scam protection.\n\n"
+                    f"We'd love to explore providing free student workshops or orientation perks for your {reach} residents. Would you be open to a quick 10-minute chat next week?"
+                )
+            elif segment == "campus_union":
+                subject = f"Student Financial Safety & Scam Protection for {org}"
+                body_text = (
+                    f"Hi {rec_name},\n\n"
+                    f"I'm reaching out from Financial Futures Education (FFE). We work with Ontario student leaders to protect students from predatory scams and surprise fees.\n\n"
+                    f"Nyra 2.0 provides 2026 Ontario paycheque calculators, automated free trial alerts, and MITRE F3 scam interception. 20% of all subscription revenue funds free financial literacy workshops for Ontario youth.\n\n"
+                    f"We'd love to partner with {org} to bring financial safety perks to your members. Let's connect!"
+                )
+            else:
+                subject = "Welcome to Nyra 2.0: Your Canadian Financial Guardrail"
+                body_text = (
+                    f"Hi {rec_name},\n\n"
+                    f"Thanks for connecting with Financial Futures Education (FFE)! As requested, here is early access to Nyra 2.0.\n\n"
+                    f"Nyra helps you stay on top of recurring bills, cancel sneaky free trials before charges hit, and spot fake CRA or Interac scams — without ever linking your bank account.\n\n"
+                    f"Feel free to reply directly to this email if you have any questions or feedback as you test the platform!"
+                )
+
+            tool_result = execute_draft_outreach_email(
+                recipient_name=rec_name,
+                recipient_email=rec_email,
+                segment=segment,
+                subject=subject,
+                body_text=body_text,
+                lead_id=lead_id,
+            )
+            tool_calls.append({
+                "name": "draft_outreach_email",
+                "input": {
+                    "lead_id": lead_id,
+                    "recipient_name": rec_name,
+                    "recipient_email": rec_email,
+                    "segment": segment,
+                    "subject": subject,
+                    "body_text": body_text,
+                },
+                "output": tool_result,
+            })
+            assistant_reply = (
+                f"I drafted a personalized, CASL-compliant outreach email to **{rec_name}** at **{org}** (~{reach} youth reach).\n\n"
+                f"**Subject:** {tool_result['subject']}\n\n"
+                f"Please review the email draft on the card below and tap **Approve & Send Email** to log or dispatch it."
+            )
+            a2ui_messages = compile_outreach_draft_surface(user_id, tool_result)
+        else:
+            assistant_reply = "No outreach leads found in database. Seed demo leads first to start drafting outreach campaigns."
+            a2ui_messages = compile_text_surface(user_id, assistant_reply)
+
+    # 4. Preset 2 / Canadian Scam Shield
     elif any(kw in text_lower for kw in ["osap", "cra", "interac", "refund", "bit.ly", "scam", "suspicious", "etransfer"]):
         skill_used = "scam_shield"
         tool_result = execute_analyze_scam(user_id, text)

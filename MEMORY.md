@@ -16,6 +16,7 @@
   2. **Automated Free Trial Kill-Switches:** Alerts users 48 hours prior to charges with an instant 1-tap cancellation workflow.
   3. **Canadian Scam Shield (MITRE F3):** Deterministic pattern matching against CRA, Interac, and OSAP phishing lures.
   4. **The 20% Social Covenant:** 20% of net profits from $5/mo and $45/yr subscriptions fund free financial literacy seminars for Ontario students.
+  5. **4th Agent — Youth Outreach & Email Agent:** Semi-autonomous, CASL-compliant campus lead discovery and email drafting with deterministic 1-tap owner dispatch at $0.00.
 
 ---
 
@@ -24,7 +25,7 @@
 All frontend interfaces strictly adhere to the guidelines established in `docs/SCROLL_CRAFT_PLAN.md`:
 
 1. **Strict White / Light Ground Rules:**
-   * **Zero Dark Mode:** All `#000000`, `#0B0E14`, `#121620`, and `bg-slate-950` backgrounds are strictly forbidden.
+   * **Zero Dark Mode:** All dark backgrounds (`#000000`, `#0B0E14`, `#121620`, and `bg-slate-950`) are strictly forbidden.
    * **Primary Canvas:** `#FFFFFF` (Pure crisp white).
    * **Depth Planes:** `#F8FAFC` (Alabaster / ice-slate tint) and `#F1F5F9` (Muted architectural slate).
    * **Typography:** Charcoal navy `#0F172A` for headings (15.8:1 WCAG AAA contrast) and slate `#334155` / `#475569` for body copy (7.2:1 WCAG AA+ contrast).
@@ -34,8 +35,8 @@ All frontend interfaces strictly adhere to the guidelines established in `docs/S
      * Warning / Due Soon: `#D97706` text on `#FFFBEB` background with `#FDE68A` border.
      * Success / Paid: `#059669` text on `#ECFDF5` background with `#A7F3D0` border.
 2. **Hard Refuse List:**
-   * ❌ No chapter badges like `00 //`, `01 //`, `02 //`.
-   * ❌ No `ScrambleText` or text-glitch animations on the brand wordmark (keep static: `Nyra 2.0`).
+   * ❌ No chapter badges like `00 //`, `01 //`, `02 //` or `"ACT 3: THE ENGINEERED PEAK..."`.
+   * ❌ No `ScrambleText` or text-glitch animations on the brand wordmark (keep static: `NYRA 2.0`).
    * ❌ No cookie-cutter 3-card or 4-card generic bento grids.
    * ❌ No generic "Scroll to explore" badges.
 
@@ -48,16 +49,17 @@ All frontend interfaces strictly adhere to the guidelines established in `docs/S
 * **Database:** SQLite (`backend/db/nyra.db`) with automatic schema initialization and demo seed data.
 * **AI Model:** Anthropic Claude Haiku 5.5 (with mock offline fallback engine).
 * **Protocol Compiler:** `backend/a2ui/compiler.py` compiling deterministic A2UI v0.9 declarative JSON messages.
-* **Testing:** `pytest` (14 comprehensive integration and unit tests in `backend/tests/test_harness.py`).
+* **Testing:** `pytest` (17 comprehensive integration and unit tests in `backend/tests/test_harness.py`).
 
 ### Frontend (`frontend/`)
 * **Framework:** Next.js 15.0.3 (App Router) + React 19 + TypeScript.
 * **Styling:** Tailwind CSS 3.4.15 + PostCSS + Lucide React icons.
-* **3D Engine:** Pure `three` (`^0.170.0`) + `@types/three` (`RoundedBoxGeometry` from `three/examples/jsm/geometries/RoundedBoxGeometry.js`).
+* **3D Engine:** Pure `three` (`^0.187.0`) + `@types/three` (`RoundedBoxGeometry`).
 * **A2UI Packages:**
   * `@a2ui/react` (`^0.15.0`) — Provides `A2uiSurface`.
   * `@a2ui/web_core` (`^0.15.0`) — Provides `MessageProcessor` and `basicCatalog`.
-* **Scroll Engine:** `scroll-craft` (`.agents/skills/scroll-craft/`).
+* **Scroll Engine:** `scroll-craft` (`.agents/skills/scroll-craft/`) + custom `scrollCraftEngine.tsx`.
+* **Container & Deployment:** Multi-stage `Dockerfile`, `render.yaml`, and Next.js reverse-proxy rewrites for unified free hosting on Render.com, Vercel, or Railway.
 
 ---
 
@@ -65,54 +67,58 @@ All frontend interfaces strictly adhere to the guidelines established in `docs/S
 
 ```text
 nyra-2.0/
+├── Dockerfile                         <-- Multi-stage production container (FastAPI + Next.js)
+├── render.yaml                        <-- 1-click Render.com Blueprint specification
+├── requirements.txt                   <-- Python dependencies (fastapi, uvicorn, pydantic, pytest)
 ├── MEMORY.md                          <-- This continuity record
-├── docs/
-│   └── SCROLL_CRAFT_PLAN.md           <-- Authoritative light-theme design specifications
+├── scripts/
+│   └── start.sh                       <-- Production startup script running backend & frontend
 ├── backend/
-│   ├── main.py                        <-- FastAPI application & REST endpoints
+│   ├── main.py                        <-- FastAPI REST endpoints, A2UI action handler, state aggregator
 │   ├── db/
-│   │   ├── database.py                <-- SQLite connection & table creation
-│   │   └── models.py                  <-- Pydantic request/response schemas
-│   ├── engine/
-│   │   ├── pii_scrubber.py            <-- Deterministic pre-LLM regex scrubber (SIN, cards)
+│   │   ├── database.py                <-- SQLite connection, CRUD helpers & outreach queries
+│   │   ├── schema.sql                 <-- Database schema (users, bills, trials, outreach leads & emails)
+│   │   └── seed_demo.py               <-- Pre-seeds 5 realistic Ontario campus leads & demo bills
+│   ├── agent/
+│   │   ├── email_sender.py            <-- Safe sandbox outbox dispatcher & optional SMTP sender
+│   │   ├── outreach_guard.py          <-- Deterministic CASL compliance validator
+│   │   ├── pii_scrubber.py            <-- PIPEDA zero-trust regex scrubber (SIN, card numbers)
 │   │   ├── quota_guard.py             <-- 25-message free tier quota enforcement
 │   │   ├── scam_rules.py              <-- MITRE F3 Canadian phishing detection
-│   │   ├── ontario_calc.py            <-- 2026 Ontario/CRA statutory tax & rent formulas
-│   │   ├── router.py                  <-- Skill router (bill_tracker, scam_shield, etc.)
-│   │   ├── mock_engine.py             <-- Offline deterministic engine ($0 cost)
-│   │   └── reminder_cron.py           <-- 9:00 AM EST batched SMS notification engine
+│   │   ├── ontario_calc.py            <-- 2026 Ontario/CRA statutory paycheque formulas
+│   │   ├── router.py                  <-- 4-agent skill router (Bill Guard, Scam Shield, Money Coach, Outreach)
+│   │   ├── tools.py                   <-- Tool definitions (including outreach leads & email drafting)
+│   │   ├── mock_engine.py             <-- Offline deterministic engine ($0.00 cost)
+│   │   └── system_prompt.md           <-- Authoritative prompt for Claude Haiku 5.5
 │   ├── a2ui/
-│   │   ├── catalog.py                 <-- v0.9 catalog definition URI
-│   │   └── compiler.py                <-- Compiles 6 agent flow surfaces into v0.9 envelopes
+│   │   ├── catalog.py                 <-- Official v0.9 basic catalog URI
+│   │   └── compiler.py                <-- Compiles 7 declarative A2UI v0.9 surfaces (Surface 7: Outreach Draft)
 │   └── tests/
-│       └── test_harness.py            <-- 14 passing pytest test cases
+│       └── test_harness.py            <-- 17 passing pytest test cases
 ├── frontend/
-│   ├── next.config.mjs                <-- Configures outputFileTracingRoot for clean static asset resolution
+│   ├── next.config.mjs                <-- Configures outputFileTracingRoot and /api/:path* reverse proxy rewrite
 │   ├── tailwind.config.js             <-- Light architectural design tokens & typography
 │   ├── src/
+│   │   ├── lib/
+│   │   │   └── scrollCraftEngine.tsx  <-- Scroll-craft reactive hooks (--sc-p, data-sc-tilt, AnimatedNumber)
 │   │   ├── app/
 │   │   │   ├── layout.tsx             <-- Root layout with Google fonts and sc-ready class
 │   │   │   ├── globals.css            <-- Pure white ground tokens & scrollbar styles
-│   │   │   └── page.tsx               <-- Root page coordinating the 4-act scroll flow
+│   │   │   └── page.tsx               <-- Root page coordinating 3D Hero, Simulator, and 4-Tier Dashboard
 │   │   └── components/
-│   │       ├── Navbar.tsx             <-- Translucent frosted glass navbar with mode toggle (appears at #live-workspace)
-│   │       ├── BillsAndImpactCard.tsx <-- White HUD: streak, fees saved, bills table, trials table
-│   │       ├── TelemetryCard.tsx      <-- White HUD: Haiku 5.5 token breakdown, cache rate & unit economics
-│   │       ├── GuardrailLogCard.tsx   <-- White HUD: PII scrubbed indicators & tool traces
-│   │       ├── A2UIWireInspector.tsx  <-- Collapsible inspector for createSurface/updateComponents envelopes
+│   │       ├── Navbar.tsx             <-- Translucent frosted glass navbar (hidden in 3D Hero)
 │   │       ├── SettingsModal.tsx      <-- B2B campus promo codes, 1-click cancel, PIPEDA/CASL modal
 │   │       ├── hero3d/
 │   │       │   ├── dollarBlocks.ts    <-- 25-block modular procedural $ matrix (stem, curves, callout targets)
-│   │       │   └── DollarSculptureStage.tsx <-- 400vh Three.js stage, 4-corner HUD, 3 scroll beats, SVG wireframes
+│   │       │   └── DollarSculptureStage.tsx <-- 400vh Three.js stage, 3-layer snowy alpine mountains, 4 callout cards
 │   │       ├── a2ui/
-│   │       │   └── A2UIMobileRuntime.tsx <-- Real @a2ui/react v0.9 mobile phone & 5 test chips
+│   │       │   └── A2UIMobileRuntime.tsx <-- Titanium iPhone mockup, dynamic island, real A2UI v0.9 cards
 │   │       └── scroll/
-│   │           ├── HeroAct.tsx        <-- Act 1: Layered White Editorial Hero (archived/fallback)
-│   │           ├── InterceptAct.tsx   <-- Act 2: Deterministic Edge Intercept & Morph (archived/fallback)
-│   │           ├── WorkspaceAct.tsx   <-- Act 3: The Engineered Peak (Mobile + Companion HUD)
-│   │           └── AccessAct.tsx      <-- Act 4: Pricing, B2B codes, and 20% Youth Literacy
+│   │           ├── LiveSimulatorSection.tsx <-- Titanium iPhone Left + 6-Card Command Deck Right
+│   │           ├── LiveDashboardSection.tsx <-- 4-Tier Kinetic Animated Dashboard
+│   │           └── AccessAct.tsx      <-- Pricing tiers & 20% Youth Literacy social covenant
 └── scrollcraft/
-    └── shots/                         <-- Headless Playwright contact sheet & 39 verification frames
+    └── shots/                         <-- Headless Playwright contact sheet & full upgrade screenshots
 ```
 
 ---
@@ -121,49 +127,22 @@ nyra-2.0/
 
 ### 1. Next.js 15 Lockfile Root Resolution (`outputFileTracingRoot`)
 * **Problem:** Next.js 15 detected a stray `package-lock.json` in `C:\Users\venka\`, incorrectly assuming `C:\Users\venka\` was the project root. Consequently, requests to `/_next/static/css/...` failed with `HTTP 400 Bad Request`, causing the frontend to render as unstyled HTML in Chrome.
-* **Solution:** Created `frontend/next.config.mjs` exporting:
-  ```javascript
-  import path from "node:path";
-  import { fileURLToPath } from "node:url";
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  export default { outputFileTracingRoot: __dirname };
-  ```
-  This forces Next.js to isolate its asset root to `frontend/`.
+* **Solution:** Configured `outputFileTracingRoot: __dirname` in `frontend/next.config.mjs`.
 
-### 2. `@a2ui/react` Web Component Node SSR Compatibility
-* **Problem:** `@a2ui/react` extends `HTMLElement` (Web Components) inside its internal bundle. During Node.js SSR, this causes `ReferenceError: HTMLElement is not defined`.
-* **Solution:** In `frontend/src/components/scroll/WorkspaceAct.tsx`, `A2UIMobileRuntime` is dynamically loaded with SSR disabled:
-  ```typescript
-  const A2UIMobileRuntime = dynamic(
-    () => import("../a2ui/A2UIMobileRuntime").then((mod) => mod.A2UIMobileRuntime),
-    { ssr: false }
-  );
-  ```
+### 2. Full-Stack Single-Origin Reverse Proxy Rewrites
+* **Problem:** Cross-origin CORS errors or mixed-content HTTPS/HTTP issues when deployed publicly or tested across ports 3000 and 8000.
+* **Solution:** Configured Next.js rewrites in `frontend/next.config.mjs` routing `/api/:path*` to `BACKEND_INTERNAL_URL || http://127.0.0.1:8000`. Frontend code uses relative URLs (`API_BASE = ""`), eliminating CORS overhead.
 
-### 3. A2UI v0.9 Protocol Envelope Constraints
-* **`version`:** Must be string `"v0.9"` (zod schema rejects `"0.9"` or `"1.0"`).
-* **`Card` Component:** In v0.9 `basicCatalog`, `Card` takes a single string `child: "<id>"`, whereas `Column` and `Row` take an array `children: ["<id1>", "<id2>"]`.
-* **`Button` Component:** Dispatches events structured as:
-  ```json
-  "action": {
-    "event": {
-      "name": "action_name",
-      "context": { "key": "value" }
-    }
-  }
-  ```
-* **Bidirectional Updates at $0.00:** Button clicks (`mark_bill_paid`, `add_rent_as_bill`, `confirm_scam_blocked`) call `POST /api/a2ui/action`. The backend updates SQLite and returns `updateDataModel` messages that mutate the UI card in-place without touching an LLM.
+### 3. A2UI v0.9 Schema Compatibility
+* **`Button` variant constraint:** In `@a2ui/web_core/v0_9/basic_catalog`, `Button` schema strictly allows `'default' | 'primary' | 'borderless'` (zod throws validation error on `'secondary'`). Discard button uses `'default'`.
+* **`Card` component constraint:** Takes single string `child: "<id>"`, while `Column` / `Row` take `children: [...]`.
+* **Bidirectional 1-Tap Execution at $0.00:** Button clicks (`approve_send_outreach_email`, `mark_bill_paid`) mutate SQLite in-place, dispatch emails via the safe sandbox dispatcher, and emit `updateDataModel` without LLM costs.
 
-### 4. 3D Procedural Modular $ Sculpture & 60 FPS Direct Ref Mutations
-* **Architecture:** Implemented with pure Three.js without Fiber/Drei overhead in `frontend/src/components/hero3d/DollarSculptureStage.tsx`.
-* **Geometry:** 25 frosted ceramic rounded blocks (`MeshPhysicalMaterial` with transmission, roughness 0.22, metalness 0.05, clearcoat 0.6) mapped in `dollarBlocks.ts` into 6 vertical spine blocks, 15 S-curve blocks, and 4 detached hero blocks (`BILL_GUARD`, `SCAM_SHIELD`, `PII_ZERO`, `20%_IMPACT`).
-* **Zero setState inside RAF:** All camera choreography, block explosions, and 2D SVG callout leader lines (`<polyline>`, `<circle>`, `<g>`) update directly via DOM `useRef` transforms. This ensures stable 60 FPS on mobile and desktop without React render thrashing.
-* **Scroll Storytelling Timeline (400vh Track):**
-  * **0.0 - 0.20 (Assembled Hero):** 4-corner Igloo HUD, subtle mouse parallax, pulsing central point light.
-  * **0.20 - 0.45 (Beat 1: Bill Guard):** Camera zooms in; bill block pulls forward with SVG leader line to live callout card.
-  * **0.45 - 0.70 (Beat 2: Scam Shield):** Sculpture rotates 45°; scam shield block detonates forward with amber alert pulse.
-  * **0.70 - 0.90 (Beat 3: Unit Economics):** Blocks snap back; PII & 20% impact callouts highlight Haiku 5.5 cost (< $0.02/mo) and youth fund.
-  * **0.90 - 1.0 (Beat 4: Workspace Hand-off):** Sculpture fades and slides down into `#live-workspace`; workspace navbar slides in smoothly.
+### 4. 3D Procedural Alpine Hero & 60 FPS Ref Architecture
+* **Two-Tone Dollar Sculpture:** Deep Nyra Blue PBR stem blocks (`#2177D1`) + Frosted Alpine White S-curve blocks with glowing `#3B82F6` bevel edges.
+* **3-Layer Procedural Mountain Landscape:** Snowy alpine ridges generated with vertex noise displacement and mouse parallax.
+* **4 Bold HTML Callout Cards:** Direct 2D DOM projection with SVG leader lines (`01 BILL GUARD`, `02 SCAM SHIELD`, `03 PII ZERO`, `04 20% IMPACT`).
+* **Zero setState inside RAF:** Camera choreography and transforms mutate DOM refs directly, guaranteeing rock-solid 60 FPS.
 
 ---
 
@@ -171,41 +150,34 @@ nyra-2.0/
 
 ### A. Run Backend (FastAPI)
 ```bash
-# From workspace root:
 python -m uvicorn backend.main:app --port 8000
-# Accessible at http://localhost:8000
 # OpenAPI Docs: http://localhost:8000/docs
 ```
 
 ### B. Run Frontend (Next.js)
 ```bash
-# Build production bundle:
 cd frontend
 npm run build
-
-# Start production server on port 3000:
 npm run start -- -p 3000
-# (Or 'npm run dev' for development)
 # Accessible at http://localhost:3000
 ```
 
-### C. Run Backend Pytest Suite (14 Tests)
+### C. Run Pytest Suite (17 Tests)
 ```bash
-python -m pytest backend/tests/test_harness.py -v
+python -m pytest -v
 ```
 
-### D. Run `scroll-craft` Headless Verification Pass
+### D. Run Playwright End-to-End Verification
 ```bash
-node .agents/skills/scroll-craft/scripts/shoot.mjs --url http://localhost:3000 --out scrollcraft/shots --steps 12
-# Inspect contact sheet at scrollcraft/shots/sheet.png and audit report at scrollcraft/shots/report.json
+node scratch/verify_full_upgrade.mjs
+# Screenshots saved in scrollcraft/shots/full_upgrade/
 ```
 
 ---
 
-## 7. Next Steps & Future Work
+## 7. Public Cloud Deployment (Render.com)
 
-1. **Twilio SMS Webhook Integration:** Connect an incoming Twilio SMS endpoint to route incoming messages into `backend/main.py` -> `router.py` -> `pii_scrubber.py`.
-2. **Cloud Deployment:**
-   * Deploy `frontend/` to Vercel (link repository `mukuntheverquest/nyra-2.0`).
-   * Deploy `backend/` to Railway, Render, or Fly.io with a persistent SQLite mount or Postgres database.
-3. **Live Anthropic API Testing:** Set `ANTHROPIC_API_KEY` in environment variables to verify live production inference with Claude Haiku 5.5.
+1. **Connect GitHub Repository:** Link `https://github.com/mukuntheverquest/nyra-2.0.git` on [Render.com](https://dashboard.render.com/).
+2. **Select Blueprint:** Render will auto-detect `render.yaml` and configure the unified Web Service using the multi-stage `Dockerfile`.
+3. **Environment Variables:** Set `OUTREACH_MODE=sandbox` (or `live` with SMTP credentials if external sending is desired).
+4. **Deploy:** Render builds both Next.js and FastAPI into a single container running Next.js on port 10000 with FastAPI internal on 8000. All features, 3D graphics, simulator, and dashboard run live out of the box!
