@@ -364,6 +364,15 @@ def process_a2ui_action(req: A2UIActionRequest):
     }
 
 
+@app.get("/api/a2ui/catalog")
+def get_a2ui_catalog():
+    from backend.a2ui.catalog import CATALOG_ID, WHITELISTED_COMPONENTS
+    return {
+        "catalogId": CATALOG_ID,
+        "whitelisted_components": sorted(list(WHITELISTED_COMPONENTS)),
+    }
+
+
 @app.post("/api/settings")
 def update_settings(req: SettingsRequest):
     user_id = req.user_id
