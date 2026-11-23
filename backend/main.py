@@ -133,6 +133,13 @@ def read_root():
     }
 
 
+@app.get("/health")
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "system": "Nyra 2.0"}
+
+
+
 @app.get("/api/state")
 def get_full_state(user_id: int = 1):
     user = get_user(user_id)
