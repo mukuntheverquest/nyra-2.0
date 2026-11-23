@@ -12,7 +12,6 @@ import {
   CalendarCheck,
   Calculator,
   Lock,
-  MailCheck,
   CreditCard,
 } from "lucide-react";
 import { useScrollCraft } from "@/lib/scrollCraftEngine";
@@ -109,17 +108,7 @@ export const LiveSimulatorSection: React.FC<LiveSimulatorSectionProps> = ({
       icon: CreditCard,
       color: "text-amber-600",
       bg: "bg-amber-50",
-    },
-    {
-      id: "outreach",
-      num: "06",
-      title: "Youth Outreach & Email Agent",
-      desc: "Find our top prospective Ontario youth/campus lead, draft a CASL-compliant email, and approve & send in 1 tap.",
-      prompt: "Find our top prospective youth campus lead and draft a personalized CASL-compliant outreach email introducing Nyra 2.0's bill guard and scam shield.",
-      icon: MailCheck,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-      isOwnerAgent: true,
+      fullWidth: true,
     },
   ];
 
@@ -214,7 +203,7 @@ export const LiveSimulatorSection: React.FC<LiveSimulatorSectionProps> = ({
               </div>
             </div>
 
-            {/* 6 Bold Popping Trigger Cards */}
+            {/* 5 Student Command Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {triggerCards.map((card) => {
                 const IconComponent = card.icon;
@@ -225,7 +214,9 @@ export const LiveSimulatorSection: React.FC<LiveSimulatorSectionProps> = ({
                     data-sc-magnet="0.10"
                     onClick={() => onSendMessage(card.prompt)}
                     disabled={isLoading}
-                    className="text-left bg-white border-2 border-slate-200 hover:border-blue-500 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:shadow-blue-600/10 active:scale-[0.98] transition-all duration-200 group cursor-pointer flex flex-col justify-between"
+                    className={`text-left bg-white border-2 border-slate-200 hover:border-blue-500 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:shadow-blue-600/10 active:scale-[0.98] transition-all duration-200 group cursor-pointer flex flex-col justify-between ${
+                      card.fullWidth ? "md:col-span-2" : ""
+                    }`}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-3">
@@ -233,11 +224,6 @@ export const LiveSimulatorSection: React.FC<LiveSimulatorSectionProps> = ({
                           <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-blue-600 text-white">
                             {card.num}
                           </span>
-                          {card.isOwnerAgent && (
-                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
-                              OWNER AGENT
-                            </span>
-                          )}
                         </div>
                         <div className={`p-2 rounded-xl ${card.bg} ${card.color}`}>
                           <IconComponent className="w-4 h-4" />

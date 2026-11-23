@@ -227,49 +227,10 @@ export const A2UIMobileRuntime: React.FC<A2UIMobileRuntimeProps> = ({
                           <div className="whitespace-pre-wrap">{m.content}</div>
                         </div>
 
-                        {/* Declarative A2UI v0.9 Interactive Surface Card */}
-                        {(surfaceId || hasSurface || m.skill_tag === "outreach_agent") && (
+                        {/* Declarative A2UI Interactive Surface Card */}
+                        {surfaceId && processor.getSurface(surfaceId) && (
                           <div className="w-full mt-2 bg-white rounded-2xl border-2 border-blue-500/30 p-3.5 shadow-md space-y-3">
-                            {surfaceId && processor.getSurface(surfaceId) ? (
-                              <A2uiSurface surface={processor.getSurface(surfaceId)! as any} />
-                            ) : null}
-                            {/* Interactive 1-Tap Action Deck for Outreach Draft */}
-                            {m.skill_tag === "outreach_agent" && (
-                              <div className="space-y-2.5 pt-1">
-                                <div className="flex items-center justify-between text-[11px] font-mono">
-                                  <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                                    CASL Consent Verified ✓
-                                  </span>
-                                  <span className="text-slate-500">HITL $0.00 Dispatched</span>
-                                </div>
-                                <div className="flex gap-2 pt-1">
-                                  <button
-                                    onClick={() =>
-                                      onAction(
-                                        surfaceId || "outreach_draft_1",
-                                        "approve_send_outreach_email",
-                                        { email_id: 1 }
-                                      )
-                                    }
-                                    className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                                  >
-                                    <Send className="w-3.5 h-3.5" /> Approve &amp; Send Email
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      onAction(
-                                        surfaceId || "outreach_draft_1",
-                                        "discard_outreach_email",
-                                        { email_id: 1 }
-                                      )
-                                    }
-                                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-all cursor-pointer active:scale-95"
-                                  >
-                                    Discard
-                                  </button>
-                                </div>
-                              </div>
-                            )}
+                            <A2uiSurface surface={processor.getSurface(surfaceId)! as any} />
                           </div>
                         )}
                       </div>

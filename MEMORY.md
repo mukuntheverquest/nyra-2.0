@@ -144,6 +144,21 @@ nyra-2.0/
 * **4 Bold HTML Callout Cards:** Direct 2D DOM projection with SVG leader lines (`01 BILL GUARD`, `02 SCAM SHIELD`, `03 PII ZERO`, `04 20% IMPACT`).
 * **Zero setState inside RAF:** Camera choreography and transforms mutate DOM refs directly, guaranteeing rock-solid 60 FPS.
 
+### 5. Simulator vs. Owner Field Domain Separation & Zero Dummy Data
+* **Domain Invariant:** The mobile simulator simulates an Ontario student's smartphone. Card #6 (Youth Outreach Agent) was removed from the phone simulator and command deck to preserve clean UX. Outreach is strictly an owner-facing capability.
+* **5 Core Student Scenarios:**
+  1. `01` Trial Kill-Switch (Adobe CC $34.99/mo with 48h advance cancellation warning)
+  2. `02` Canadian Scam Shield (Fake Interac / OSAP refund caught by MITRE F3)
+  3. `03` 2026 Ontario Paycheque ($18/hr, 20h/wk take-home math vs. $850 rent)
+  4. `04` Zero-Trust PII Guardrail (Local regex scrub of SIN 123-456-789 before LLM)
+  5. `05` Mark Bill Paid + Streak (Pay Rogers Phone, auto-roll date, boost streak)
+* **Zero Dummy Data Invariant:** All hardcoded/pre-seeded outreach leads (`Jordan Patel`, `Priya Nair`, etc.) and emails were eliminated from `seed_demo.py` and the database. The app starts clean (`0 leads`, `0 emails sent`).
+* **Live Dynamic Owner Pipeline (Tier 4):**
+  * Built an inline "+ Add Campus Lead" form directly in the dashboard queue so users can enter real Ontario campus leads during demos.
+  * 1-Tap "Draft CASL Email" trigger per lead creates personalized, CASL-compliant drafts via `POST /api/outreach/draft-for-lead`.
+  * 1-Tap "Approve & Send Email" and "Discard" actions directly on pending drafts in the Outbox via `POST /api/outreach/email/action` or A2UI action.
+  * Real-time metrics sync: `total_leads`, `emails_sent`, and `est_youth_reached` compute dynamically from SQLite with zero hardcoded fallbacks.
+
 ---
 
 ## 6. How to Run, Test, and Verify

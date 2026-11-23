@@ -307,6 +307,93 @@ export default function Home() {
     scrollTo("live-workspace");
   };
 
+  // Outreach Handlers for Owner Pipeline in Tier 4
+  const handleAddLead = async (leadData: {
+    name: string;
+    email: string;
+    organization: string;
+    segment?: string;
+    youth_reach_est?: number;
+    casl_consent_type?: string;
+    notes?: string;
+  }) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/outreach/lead`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(leadData),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.state) {
+          setOutreachLeads(data.state.outreach_leads || []);
+          setOutreachEmails(data.state.outreach_emails || []);
+          setOutreachSummary(data.state.outreach_summary || null);
+        }
+      }
+    } catch (err) {
+      console.error("Add lead error:", err);
+    }
+  };
+
+  const handleDeleteLead = async (leadId: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/outreach/lead/${leadId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.state) {
+          setOutreachLeads(data.state.outreach_leads || []);
+          setOutreachEmails(data.state.outreach_emails || []);
+          setOutreachSummary(data.state.outreach_summary || null);
+        }
+      }
+    } catch (err) {
+      console.error("Delete lead error:", err);
+    }
+  };
+
+  const handleDraftForLead = async (leadId: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/outreach/draft-for-lead`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_id: leadId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.state) {
+          setOutreachLeads(data.state.outreach_leads || []);
+          setOutreachEmails(data.state.outreach_emails || []);
+          setOutreachSummary(data.state.outreach_summary || null);
+        }
+      }
+    } catch (err) {
+      console.error("Draft for lead error:", err);
+    }
+  };
+
+  const handleOutreachEmailAction = async (emailId: number, action: "approve_send" | "discard") => {
+    try {
+      const res = await fetch(`${API_BASE}/api/outreach/email/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email_id: emailId, action }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.state) {
+          setOutreachLeads(data.state.outreach_leads || []);
+          setOutreachEmails(data.state.outreach_emails || []);
+          setOutreachSummary(data.state.outreach_summary || null);
+        }
+      }
+    } catch (err) {
+      console.error("Email action error:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-[#2563EB]/15 selection:text-[#2563EB]">
       {/* 1. Workspace Sticky Navbar: Fades in only once user scrolls into #live-workspace */}
@@ -329,7 +416,7 @@ export default function Home() {
         {/* Phase 2: 3D Procedural Modular $ Sculpture Stage (400vh) */}
         <DollarSculptureStage onJumpToApp={() => scrollTo("live-workspace")} />
 
-        {/* Phase 3: Interactive Smartphone Mockup + 6-Card Command Deck */}
+        {/* Phase 3: Interactive Smartphone Mockup + 5-Card Command Deck */}
         <LiveSimulatorSection
           user={user}
           bills={bills}
@@ -360,6 +447,10 @@ export default function Home() {
           outreachEmails={outreachEmails}
           outreachSummary={outreachSummary}
           onSelectLeadToDraft={handleSelectLeadToDraft}
+          onAddLead={handleAddLead}
+          onDeleteLead={handleDeleteLead}
+          onDraftForLead={handleDraftForLead}
+          onEmailAction={handleOutreachEmailAction}
         />
 
         {/* Phase 5: Access, Pricing & 20% Youth Impact Pool */}

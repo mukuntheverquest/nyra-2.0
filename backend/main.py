@@ -21,6 +21,10 @@ from backend.db.database import (
     add_message,
     add_telemetry,
     get_outreach_leads,
+    get_outreach_lead_by_id,
+    create_outreach_lead,
+    update_outreach_lead_status,
+    delete_outreach_lead,
     get_outreach_emails,
     get_outreach_email_by_id,
     update_outreach_email_status,
@@ -34,7 +38,11 @@ from backend.middleware.quota_guard import (
     check_monthly_quota,
 )
 from backend.agent.router import execute_agent_turn
-from backend.agent.tools import execute_mark_bill_paid, execute_add_bill
+from backend.agent.tools import (
+    execute_mark_bill_paid,
+    execute_add_bill,
+    execute_draft_outreach_email,
+)
 from backend.scheduler.reminder_cron import run_daily_reminder_digest
 from backend.a2ui.compiler import (
     compile_pii_block_surface,
@@ -90,6 +98,28 @@ class SettingsRequest(BaseModel):
     org_code: Optional[str] = None
     sms_active: Optional[int] = None
     weekly_tip_opt_in: Optional[int] = None
+
+
+class OutreachLeadCreateRequest(BaseModel):
+    name: str
+    email: str
+    organization: str
+    segment: str = "campus_union"
+    casl_consent_type: str = "implied_b2b_inquiry"
+    youth_reach_est: int = 250
+    notes: Optional[str] = None
+
+
+class OutreachDraftRequest(BaseModel):
+    lead_id: int
+    subject: Optional[str] = None
+    body_text: Optional[str] = None
+
+
+class OutreachEmailActionRequest(BaseModel):
+    email_id: int
+    action: str  # "approve_send" | "discard"
+
 
 
 @app.get("/")
@@ -353,6 +383,8 @@ def process_a2ui_action(req: A2UIActionRequest):
                 delivery_mode=deliv_mode,
                 sent_at=now_iso,
             )
+            if email_record.get("lead_id"):
+                update_outreach_lead_status(email_record["lead_id"], "sent")
             updated_data_model["email"] = updated_data_model.get("email", {})
             updated_data_model["email"]["statusLabel"] = "Sent ✓ (Logged in Outbox · $0.00 AI)"
             updated_data_model["email"]["approved"] = True
@@ -444,6 +476,118 @@ def update_settings(req: SettingsRequest):
 
     user = update_user(user_id, **updates)
     return {"status": "success", "user": user}
+
+
+@app.post("/api/outreach/lead")
+def create_lead_endpoint(req: OutreachLeadCreateRequest):
+    lead_id = create_outreach_lead(
+        name=req.name.strip(),
+        email=req.email.strip(),
+        organization=req.organization.strip(),
+        segment=req.segment,
+        casl_consent_type=req.casl_consent_type,
+        youth_reach_est=req.youth_reach_est,
+        notes=req.notes,
+        status="new",
+    )
+    return {
+        "status": "success",
+        "lead_id": lead_id,
+        "state": get_full_state(1),
+    }
+
+
+@app.delete("/api/outreach/lead/{lead_id}")
+def delete_lead_endpoint(lead_id: int):
+    delete_outreach_lead(lead_id)
+    return {
+        "status": "success",
+        "deleted_id": lead_id,
+        "state": get_full_state(1),
+    }
+
+
+@app.post("/api/outreach/draft-for-lead")
+def draft_for_lead_endpoint(req: OutreachDraftRequest):
+    lead = get_outreach_lead_by_id(req.lead_id)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    recipient_name = lead.get("name", "Student Leader")
+    org = lead.get("organization", "Campus Organization")
+    reach = lead.get("youth_reach_est", 250)
+
+    subject = req.subject or f"Student Financial Safety & Scam Protection for {org}"
+    body = req.body_text or (
+        f"Hi {recipient_name},\n\n"
+        f"Reaching out to see if {org} would like to offer deterministic scam defense "
+        f"and automated bill safety guardrails to your ~{reach} youth members.\n\n"
+        f"Nyra 2.0 operates strictly zero-PII and zero-bank-linking, protecting students from "
+        f"fake Interac refund scams, surprise trial rollover charges, and late fees.\n\n"
+        f"We'd love to provide free sponsored access via Financial Futures Education (FFE).\n\n"
+        f"Best regards,\n"
+        f"Alex Rivera & The Nyra Team\n"
+        f"Financial Futures Education (FFE) · Toronto, ON"
+    )
+
+    draft_res = execute_draft_outreach_email(
+        recipient_name=recipient_name,
+        recipient_email=lead.get("email"),
+        segment=lead.get("segment", "campus_union"),
+        subject=subject,
+        body_text=body,
+        lead_id=req.lead_id,
+    )
+    update_outreach_lead_status(req.lead_id, "contacted")
+
+    return {
+        "status": "success",
+        "draft": draft_res,
+        "state": get_full_state(1),
+    }
+
+
+@app.post("/api/outreach/email/action")
+def email_action_endpoint(req: OutreachEmailActionRequest):
+    email_id = req.email_id
+    email_record = get_outreach_email_by_id(email_id)
+    if not email_record:
+        raise HTTPException(status_code=404, detail="Email record not found")
+
+    if req.action == "approve_send":
+        rec_email = email_record["recipient_email"]
+        subj = email_record["subject"]
+        body = email_record["body_text"]
+        disp_res = dispatch_approved_email(rec_email, subj, body)
+        deliv_mode = disp_res.get("delivery_mode", "sandbox_outbox")
+        now_iso = datetime.now().isoformat()
+        update_outreach_email_status(
+            email_id=email_id,
+            status="approved_sent",
+            delivery_mode=deliv_mode,
+            sent_at=now_iso,
+        )
+        if email_record.get("lead_id"):
+            update_outreach_lead_status(email_record["lead_id"], "sent")
+        return {
+            "status": "success",
+            "action": "approved_sent",
+            "delivery_mode": deliv_mode,
+            "state": get_full_state(1),
+        }
+    elif req.action == "discard":
+        update_outreach_email_status(
+            email_id=email_id,
+            status="discarded",
+            delivery_mode="none",
+        )
+        return {
+            "status": "success",
+            "action": "discarded",
+            "state": get_full_state(1),
+        }
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown action: {req.action}")
 
 
 @app.post("/api/demo/reset")

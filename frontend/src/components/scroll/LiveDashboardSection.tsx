@@ -18,6 +18,10 @@ import {
   AlertCircle,
   FileText,
   Sparkles,
+  Plus,
+  Trash2,
+  Check,
+  X,
 } from "lucide-react";
 import { AnimatedNumber, useScrollCraft } from "@/lib/scrollCraftEngine";
 
@@ -34,6 +38,18 @@ interface LiveDashboardSectionProps {
   outreachEmails?: any[];
   outreachSummary?: any;
   onSelectLeadToDraft?: (leadName: string, organization: string) => void;
+  onAddLead?: (leadData: {
+    name: string;
+    email: string;
+    organization: string;
+    segment?: string;
+    youth_reach_est?: number;
+    casl_consent_type?: string;
+    notes?: string;
+  }) => void;
+  onDeleteLead?: (leadId: number) => void;
+  onDraftForLead?: (leadId: number) => void;
+  onEmailAction?: (emailId: number, action: "approve_send" | "discard") => void;
 }
 
 export const LiveDashboardSection: React.FC<LiveDashboardSectionProps> = ({
@@ -49,11 +65,26 @@ export const LiveDashboardSection: React.FC<LiveDashboardSectionProps> = ({
   outreachEmails = [],
   outreachSummary,
   onSelectLeadToDraft,
+  onAddLead,
+  onDeleteLead,
+  onDraftForLead,
+  onEmailAction,
 }) => {
   useScrollCraft([user, bills, trials, outreachEmails]);
 
   const [expandedEmailId, setExpandedEmailId] = useState<number | null>(null);
   const [showA2UIInspector, setShowA2UIInspector] = useState(false);
+
+  // Inline Lead Creator State
+  const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
+  const [newLeadName, setNewLeadName] = useState("");
+  const [newLeadEmail, setNewLeadEmail] = useState("");
+  const [newLeadOrg, setNewLeadOrg] = useState("");
+  const [newLeadReach, setNewLeadReach] = useState(250);
+  const [newLeadSegment, setNewLeadSegment] = useState("campus_union");
+  const [newLeadConsent, setNewLeadConsent] = useState("implied_b2b_inquiry");
+  const [newLeadNotes, setNewLeadNotes] = useState("");
+  const [isSubmittingLead, setIsSubmittingLead] = useState(false);
 
   const streak = user?.streak_months ?? 4;
   const feesSaved = user?.late_fees_saved ?? 105;
@@ -69,10 +100,34 @@ export const LiveDashboardSection: React.FC<LiveDashboardSectionProps> = ({
   const modelName = telemetryLatest?.model_used ?? "claude-haiku-5-5";
   const latency = telemetryLatest?.latency_ms ?? 120;
 
-  const totalLeads = outreachSummary?.total_leads ?? (outreachLeads.length || 5);
+  const totalLeads = outreachSummary?.total_leads ?? outreachLeads.length;
   const emailsSent = outreachSummary?.emails_sent ?? 0;
   const estYouthReached = outreachSummary?.est_youth_reached ?? 0;
   const outreachMode = outreachSummary?.outreach_mode ?? "sandbox";
+
+  const handleSubmitLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLeadName.trim() || !newLeadEmail.trim() || !newLeadOrg.trim()) return;
+    setIsSubmittingLead(true);
+    if (onAddLead) {
+      await onAddLead({
+        name: newLeadName.trim(),
+        email: newLeadEmail.trim(),
+        organization: newLeadOrg.trim(),
+        youth_reach_est: Number(newLeadReach) || 250,
+        segment: newLeadSegment,
+        casl_consent_type: newLeadConsent,
+        notes: newLeadNotes.trim() || undefined,
+      });
+    }
+    setNewLeadName("");
+    setNewLeadEmail("");
+    setNewLeadOrg("");
+    setNewLeadReach(250);
+    setNewLeadNotes("");
+    setIsSubmittingLead(false);
+    setIsAddLeadOpen(false);
+  };
 
   return (
     <section
@@ -549,73 +604,248 @@ export const LiveDashboardSection: React.FC<LiveDashboardSectionProps> = ({
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <h4 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
                   <Users className="w-5 h-5 text-blue-600" />
-                  Prospective Youth &amp; Campus Leads Queue
+                  Prospective Youth &amp; Campus Leads Queue ({outreachLeads.length})
                 </h4>
-                <span className="text-xs font-mono text-slate-500">
-                  Pre-seeded demo leads
-                </span>
+                <button
+                  onClick={() => setIsAddLeadOpen(!isAddLeadOpen)}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-mono font-bold shadow-xs transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{isAddLeadOpen ? "Close" : "+ Add Campus Lead"}</span>
+                </button>
               </div>
 
-              <div className="space-y-3">
-                {outreachLeads.map((lead) => {
-                  const isSent = lead.status === "sent";
-                  const isDrafted = lead.status === "drafted";
-                  return (
-                    <div
-                      key={lead.id}
-                      className="p-4 bg-white border border-slate-200 rounded-2xl shadow-2xs hover:border-blue-400 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              {/* Inline Add Lead Form */}
+              {isAddLeadOpen && (
+                <form
+                  onSubmit={handleSubmitLead}
+                  className="p-5 bg-blue-50/50 border-2 border-blue-200 rounded-2xl shadow-sm space-y-4 transition-all"
+                >
+                  <div className="flex items-center justify-between border-b border-blue-200 pb-2">
+                    <span className="text-xs font-mono font-bold uppercase text-blue-900">
+                      Add New Prospective Campus / Youth Lead
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddLeadOpen(false)}
+                      className="text-slate-400 hover:text-slate-700 p-1"
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-base font-bold text-slate-900">
-                            {lead.name}
-                          </span>
-                          <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                            ~{lead.youth_reach_est} reach
-                          </span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                            {lead.casl_consent_type}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-600 font-mono">
-                          {lead.organization} · {lead.email}
-                        </div>
-                        {lead.notes && (
-                          <div className="text-xs text-slate-500 italic">
-                            &ldquo;{lead.notes}&rdquo;
-                          </div>
-                        )}
-                      </div>
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                      <div className="flex items-center gap-2.5 sm:self-center">
-                        <span
-                          className={`text-xs font-mono font-bold px-2.5 py-1 rounded-full border ${
-                            isSent
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : isDrafted
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-slate-100 text-slate-700 border-slate-200"
-                          }`}
-                        >
-                          {isSent ? "Sent ✓" : isDrafted ? "Drafted" : "New"}
-                        </span>
-
-                        <button
-                          onClick={() => {
-                            if (onSelectLeadToDraft) {
-                              onSelectLeadToDraft(lead.name, lead.organization);
-                            }
-                          }}
-                          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-mono font-semibold transition cursor-pointer shadow-xs flex items-center gap-1"
-                        >
-                          <span>Draft Email</span>
-                          <Send className="w-3 h-3" />
-                        </button>
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-mono font-bold text-slate-700 block mb-1">
+                        Contact Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newLeadName}
+                        onChange={(e) => setNewLeadName(e.target.value)}
+                        placeholder="e.g. Devon Brooks"
+                        className="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-600 text-slate-900"
+                      />
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div>
+                      <label className="text-xs font-mono font-bold text-slate-700 block mb-1">
+                        Organization *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newLeadOrg}
+                        onChange={(e) => setNewLeadOrg(e.target.value)}
+                        placeholder="e.g. McMaster Students Union"
+                        className="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-600 text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-mono font-bold text-slate-700 block mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={newLeadEmail}
+                        onChange={(e) => setNewLeadEmail(e.target.value)}
+                        placeholder="e.g. vp.finance@msu.mcmaster.ca"
+                        className="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-600 text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-mono font-bold text-slate-700 block mb-1">
+                        Est. Youth Reach
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newLeadReach}
+                        onChange={(e) => setNewLeadReach(Number(e.target.value))}
+                        className="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-600 text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-mono font-bold text-slate-700 block mb-1">
+                        Segment
+                      </label>
+                      <select
+                        value={newLeadSegment}
+                        onChange={(e) => setNewLeadSegment(e.target.value)}
+                        className="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-600 text-slate-900"
+                      >
+                        <option value="campus_union">Campus Student Union</option>
+                        <option value="residence_life">Residence Life &amp; Housing</option>
+                        <option value="student_club">Student Financial Club</option>
+                        <option value="financial_aid">Financial Aid Office</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-mono font-bold text-slate-700 block mb-1">
+                        CASL Consent Type
+                      </label>
+                      <select
+                        value={newLeadConsent}
+                        onChange={(e) => setNewLeadConsent(e.target.value)}
+                        className="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-600 text-slate-900"
+                      >
+                        <option value="implied_b2b_inquiry">Implied B2B Inquiry</option>
+                        <option value="express_opt_in">Express Opt-In</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono font-bold text-slate-700 block mb-1">
+                      Notes (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={newLeadNotes}
+                      onChange={(e) => setNewLeadNotes(e.target.value)}
+                      placeholder="e.g. Met at campus leadership fair; interested in first-year financial wellness"
+                      className="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-600 text-slate-900"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-blue-200">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddLeadOpen(false)}
+                      className="px-4 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingLead}
+                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-mono font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{isSubmittingLead ? "Adding..." : "Add Lead to Pipeline"}</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Leads List or Clean Empty State */}
+              {outreachLeads.length === 0 && !isAddLeadOpen ? (
+                <div className="p-8 rounded-2xl bg-white border-2 border-dashed border-slate-200 text-center space-y-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <h5 className="font-extrabold text-slate-900 text-base">Pipeline Ready for Live Pitch Contacts</h5>
+                  <p className="text-xs font-mono text-slate-500 max-w-sm mx-auto leading-relaxed">
+                    Zero dummy leads pre-seeded. Add your real campus leaders or test contacts to verify live CASL email drafting and 1-tap dispatch.
+                  </p>
+                  <button
+                    onClick={() => setIsAddLeadOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-mono font-bold transition cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add First Campus Lead</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {outreachLeads.map((lead) => {
+                    const isSent = lead.status === "sent";
+                    const isDrafted = lead.status === "drafted" || lead.status === "contacted";
+                    return (
+                      <div
+                        key={lead.id}
+                        className="p-4 bg-white border border-slate-200 rounded-2xl shadow-2xs hover:border-blue-400 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-base font-bold text-slate-900">
+                              {lead.name}
+                            </span>
+                            <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                              ~{lead.youth_reach_est} reach
+                            </span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                              {lead.casl_consent_type}
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-600 font-mono">
+                            {lead.organization} · {lead.email}
+                          </div>
+                          {lead.notes && (
+                            <div className="text-xs text-slate-500 italic">
+                              &ldquo;{lead.notes}&rdquo;
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 sm:self-center">
+                          <span
+                            className={`text-xs font-mono font-bold px-2.5 py-1 rounded-full border ${
+                              isSent
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : isDrafted
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-slate-100 text-slate-700 border-slate-200"
+                            }`}
+                          >
+                            {isSent ? "Sent ✓" : isDrafted ? "Drafted" : "New"}
+                          </span>
+
+                          <button
+                            onClick={() => {
+                              if (onDraftForLead) {
+                                onDraftForLead(lead.id);
+                              } else if (onSelectLeadToDraft) {
+                                onSelectLeadToDraft(lead.name, lead.organization);
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-mono font-semibold transition cursor-pointer shadow-xs flex items-center gap-1 active:scale-95"
+                          >
+                            <span>Draft Email</span>
+                            <Send className="w-3 h-3" />
+                          </button>
+
+                          {onDeleteLead && (
+                            <button
+                              onClick={() => onDeleteLead(lead.id)}
+                              title="Delete Lead"
+                              className="p-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Right: Sent & Pending Email Outbox */}
@@ -631,14 +861,15 @@ export const LiveDashboardSection: React.FC<LiveDashboardSectionProps> = ({
               </div>
 
               {outreachEmails.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200 text-center text-sm text-slate-500 font-mono">
-                  No emails drafted or sent yet. Tap &ldquo;Draft Email&rdquo; on any lead or run Card #6 in the simulator!
+                <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200 text-center text-sm text-slate-500 font-mono leading-relaxed">
+                  No outreach emails drafted or sent yet. Add a campus lead on the left and tap &ldquo;Draft Email&rdquo; to generate a CASL-verified draft!
                 </div>
               ) : (
                 <div className="space-y-3">
                   {outreachEmails.map((email) => {
                     const isExpanded = expandedEmailId === email.id;
                     const isApproved = email.status === "approved_sent";
+                    const isDiscarded = email.status === "discarded";
                     return (
                       <div
                         key={email.id}
@@ -664,16 +895,36 @@ export const LiveDashboardSection: React.FC<LiveDashboardSectionProps> = ({
                               className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border ${
                                 isApproved
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : isDiscarded
+                                  ? "bg-slate-100 text-slate-500 border-slate-200"
                                   : "bg-amber-50 text-amber-700 border-amber-200"
                               }`}
                             >
-                              {isApproved ? "Sent ✓" : "Pending Draft"}
+                              {isApproved ? "Sent ✓" : isDiscarded ? "Discarded" : "Pending Draft"}
                             </span>
                             <span className="text-[10px] font-mono text-slate-500">
                               {email.delivery_mode}
                             </span>
                           </div>
                         </div>
+
+                        {/* Direct 1-Tap Action Deck for Pending Drafts */}
+                        {!isApproved && !isDiscarded && (
+                          <div className="flex gap-2 pt-2 border-t border-slate-100">
+                            <button
+                              onClick={() => onEmailAction && onEmailAction(email.id, "approve_send")}
+                              className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Approve &amp; Send Email
+                            </button>
+                            <button
+                              onClick={() => onEmailAction && onEmailAction(email.id, "discard")}
+                              className="py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-all cursor-pointer active:scale-95 flex items-center gap-1"
+                            >
+                              <X className="w-3.5 h-3.5" /> Discard
+                            </button>
+                          </div>
+                        )}
 
                         <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                           <span className="text-[11px] font-mono text-slate-400">

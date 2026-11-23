@@ -330,6 +330,57 @@ def get_outreach_lead_by_email(email: str, db_path: Optional[str] = None) -> Opt
     return dict(row) if row else None
 
 
+def create_outreach_lead(
+    name: str,
+    email: str,
+    organization: str,
+    segment: str = "campus_union",
+    casl_consent_type: str = "implied_b2b_inquiry",
+    youth_reach_est: int = 100,
+    notes: Optional[str] = None,
+    status: str = "new",
+    db_path: Optional[str] = None,
+) -> int:
+    conn = get_db_connection(db_path)
+    with conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO outreach_leads (
+                name, email, organization, segment, casl_consent_type, youth_reach_est, notes, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (name, email, organization, segment, casl_consent_type, youth_reach_est, notes, status),
+        )
+        lead_id = cursor.lastrowid
+    conn.close()
+    return lead_id
+
+
+def update_outreach_lead_status(
+    lead_id: int,
+    status: str,
+    db_path: Optional[str] = None,
+) -> None:
+    conn = get_db_connection(db_path)
+    with conn:
+        conn.execute(
+            "UPDATE outreach_leads SET status = ? WHERE id = ?",
+            (status, lead_id),
+        )
+    conn.close()
+
+
+def delete_outreach_lead(
+    lead_id: int,
+    db_path: Optional[str] = None,
+) -> None:
+    conn = get_db_connection(db_path)
+    with conn:
+        conn.execute("DELETE FROM outreach_leads WHERE id = ?", (lead_id,))
+    conn.close()
+
+
+
 def create_outreach_email_draft(
     recipient_name: str,
     recipient_email: str,

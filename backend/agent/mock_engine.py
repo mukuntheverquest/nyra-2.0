@@ -21,7 +21,7 @@ from backend.a2ui.compiler import (
     compile_text_surface,
     compile_outreach_draft_surface,
 )
-from backend.db.database import get_outreach_leads
+from backend.db.database import get_outreach_leads, create_outreach_lead, get_outreach_lead_by_id
 from backend.config import HAIKU_PRICING_PER_MTOK, USD_TO_CAD
 
 
@@ -90,6 +90,29 @@ def run_mock_turn(user_id: int, user_message: str) -> Dict[str, Any]:
                 break
         if not selected_lead and leads:
             selected_lead = leads[0]
+        elif not selected_lead and not leads:
+            # Dynamically create lead on-demand if database starts clean
+            if "priya" in text_lower or "residence" in text_lower:
+                new_lead_id = create_outreach_lead(
+                    name="Priya Nair",
+                    email="residence.life@mcmaster-demo.ca",
+                    organization="McMaster Residence Life",
+                    segment="residence_life",
+                    casl_consent_type="implied_b2b_inquiry",
+                    youth_reach_est=500,
+                    notes="Interested in bulk student wellness tools for first-year move-in",
+                )
+            else:
+                new_lead_id = create_outreach_lead(
+                    name="Devon Brooks",
+                    email="wellness@msu-demo.ca",
+                    organization="McMaster Students Union",
+                    segment="campus_union",
+                    casl_consent_type="implied_b2b_inquiry",
+                    youth_reach_est=1200,
+                    notes="Exploring $10/seat/yr financial safety perks for undergrads",
+                )
+            selected_lead = get_outreach_lead_by_id(new_lead_id)
 
         if selected_lead:
             lead_id = selected_lead["id"]
